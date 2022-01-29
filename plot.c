@@ -47,15 +47,15 @@ int main(int argc, char *argv[]) {
     /* Change main window Title */
     Atom new_attr = XInternAtom(displ, "WM_NAME", False);
     Atom type =  XInternAtom(displ, "STRING", False);
-    XChangeProperty(displ, win, new_attr, type, 8, PropModeReplace, (unsigned char*)"mandelbrot set", 14);
+    XChangeProperty(displ, win, new_attr, type, 8, PropModeReplace, (unsigned char*)"Mandelbrot Set", 14);
 
     /* Add grafical context to window */
     XGCValues values;
-    values.line_width = 2;
+    values.line_width = 0;
     values.line_style = LineSolid;
-    values.fill_rule = WindingRule;
-    values.foreground = XWhitePixel(displ, screen);
-    GC gc = XCreateGC(displ, win, GCForeground | GCLineWidth | GCLineStyle | GCFillRule, &values);
+    values.fill_style = FillSolid;
+    values.fill_rule =  WindingRule;
+    GC gc = XCreateGC(displ, win, GCLineWidth | GCLineStyle | GCFillStyle | GCFillRule, &values);
 
     while (1) {
         while (XPending(displ) > 0) {
@@ -64,7 +64,9 @@ int main(int argc, char *argv[]) {
             if (event.type == ClientMessage) {
                 if (event.xclient.data.l[0] == wm_delete_window) {
                     printf("WM_DELETE_WINDOW");
-                    XFreeGC(displ, gc);
+                    if (gc != NULL) {
+                        XFreeGC(displ, gc);
+                    }
                     XCloseDisplay(displ);
                     return 0;
                 }
@@ -72,36 +74,35 @@ int main(int argc, char *argv[]) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 printf("Expose Event occured.\n");
-                
             } else if (event.type == KeyPress && event.xclient.window == win) {
-                for (int x = 0; x <= winattr.width; x++) {
-                    for (int y = 0; y <= winattr.height; y++) {
+                    for (int x = 0; x <= winattr.width; x++) {
+                        for (int y = 0; y <= winattr.height; y++) {
 
-                        float a = (float)(x - (winattr.width / 2)) / (float)(winattr.width / 4);
-                        float b = (float)(y - (winattr.height / 2)) / (float)(winattr.height / 4);;
-                        float curr_a = a;
-                        float curr_b = b;
-                        float n = 0;
+                            float a = (float)(x - (winattr.width / 1.3)) / (float)(winattr.width / 2);
+                            float b = (float)(y - (winattr.height / 2)) / (float)(winattr.height / 2);;
+                            float curr_a = a;
+                            float curr_b = b;
+                            float n = 0;
 
-                        while (n < 100) {
-                            float iter_a = (a * a) - (b * b);
-                            float iter_b = 2 * a * b;
-                            a = iter_a + curr_a;
-                            b = iter_b + curr_b;
-                            
-                            if (abs(a + b) > 16) {
-                                break;
+                            while (n <= 100) {
+                                float iter_a = (a * a) - (b * b);
+                                float iter_b = 2 * a * b;
+                                a = iter_a + curr_a;
+                                b = iter_b + curr_b;
+                                
+                                if (abs(a + b) > 16) {
+                                    break;
+                                }
+                                n++;
                             }
-                            n++;
-                        }
-                        if (n == 100) {
-                            values.foreground = rand() % 255;
-                            values.background = rand() % 255;
-                            GC gc = XCreateGC(displ, win, GCBackground | GCForeground | GCLineWidth | GCLineStyle | GCFillRule, &values);
-                            XDrawPoint(displ, win, gc, x, y);                           
+                            if (n <= 100) {
+                                values.foreground = 255;
+                                values.background = 255;
+                                XChangeGC(displ, gc, GCBackground | GCForeground, &values);
+                                XDrawPoint(displ, win, gc, x, y);                   
+                            }
                         }
                     }
-                }
             } else {
                 printf("Main Window Event.\n");
                 printf("Event Type: %d\n", event.type);

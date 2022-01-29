@@ -4,6 +4,7 @@ Only Xlib and standard C Libraries have been used to develop this software.<br><
 This software displays a Main window and when the user presses a key it draws a mandelbrot set.<br>
 
 If you are interested in obtaining this software, clone it and compile it with the following command.<br>
+This command must be run from inside the project main directory.<br>
 ```
 make all
 ```
