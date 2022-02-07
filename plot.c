@@ -83,9 +83,10 @@ int main(int argc, char *argv[]) {
     values.fill_rule =  WindingRule;
     GC gc = XCreateGC(displ, win, GCLineWidth | GCLineStyle | GCFillStyle | GCFillRule, &values);
 
-    float horiz = 1.30;
-    float vert = 2.00;
-    float zoom = 2.5;
+    double horiz = 1.50;
+    double vert = 2.00;
+    double zoom = 4.00;
+    int max_iter = 100;
     while (1) {
         while (XPending(displ) > 0) {
             XNextEvent(displ, &event);
@@ -107,18 +108,27 @@ int main(int argc, char *argv[]) {
                 printf("Mouse button clicked: %d\n", event.xbutton.button);
                 printf("Mouse button x position: %d\n", event.xbutton.x);
                 printf("Mouse button y position: %d\n", event.xbutton.y);
+                double center_x = (double)(event.xbutton.x - (winattr.width / 2.00)) / (double)(winattr.width / 4.00);
+                double center_y = (double)(event.xbutton.y - (winattr.height / 2.00)) / (double)(winattr.height / 4.00);
+                printf("X value: %f\nY value: %f\n", center_x, center_y);
+                
+                //zoom -= 0.10; 
                 for (int x = 0; x <= winattr.width; x++) {
                     for (int y = 0; y <= winattr.height; y++) {
 
-                        float a = (float)(x - (winattr.width / horiz)) / (float)(winattr.width / zoom);
-                        float b = (float)(y - (winattr.height / vert)) / (float)(winattr.height / zoom);;
-                        float curr_a = a;
-                        float curr_b = b;
+                        double a = (double)(x + event.xbutton.x) / (double)(winattr.width / 4.00);
+                        double b = (double)(y + event.xbutton.y) / (double)(winattr.height / 4.00);
+                        // if (y == 2) { 
+                        //     printf("A value: %f\nB value: %f\n", a, b);
+                        //     break;
+                        // }
+                        double curr_a = a;
+                        double curr_b = b;
                         int n = 0;
 
-                        while (n < 100) {
-                            float iter_a = (a * a) - (b * b);
-                            float iter_b = 2 * a * b;
+                        while (n < max_iter) {
+                            double iter_a = (a * a) - (b * b);
+                            double iter_b = 2 * a * b;
                             a = iter_a + curr_a;
                             b = iter_b + curr_b;
 
@@ -127,24 +137,27 @@ int main(int argc, char *argv[]) {
                             }
                             n++;
                         }
-                        if (n == 100) {
+                        if (n == max_iter) {
                             values.foreground = 3517575;
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);                                   
-                        } else if (n < 100 && n >= 10) {
+                        } else if (n < max_iter && n >= 10) {
                             values.foreground = n * n;
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);                          
-                        } else if (n < 100 && n < 10) {
+                        } else if (n < max_iter && n < 10) {
                             values.foreground = n * n;
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);                              
                         } else {
                             values.foreground = 0;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);  
+                            XDrawPoint(displ, win, gc, x, y);
                         }
                     }
+                    // if (x == 2) {
+                    //     break;
+                    // }
                 }
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
@@ -165,33 +178,29 @@ int main(int argc, char *argv[]) {
                 }
                 printf("Pressed key: %lu.\n", keysym);
                 if (keysym == 65361) {
-                    horiz += 0.50;
+                    horiz *= 0.50;
                 } else if (keysym == 65363) {
-                    horiz -= 0.50;
+                    horiz /= 0.50;
                 } else if (keysym == 65362) {
-                    vert += 0.50; 
+                    vert *= 0.50; 
                 } else if (keysym == 65364) {
-                    vert -= 0.50;
+                    vert /= 0.50;
                 } else if (keysym == 65293) {
-                    zoom -= 0.50;
+                    zoom *= 0.50;
                 }
-                int testing_1 = 0;
-                int testing_2 = 0;
-                int testing_3 = 0;
-                int testing_4 = 0;
 
                 for (int x = 0; x <= winattr.width; x++) {
                     for (int y = 0; y <= winattr.height; y++) {
 
-                        float a = (float)(x - (winattr.width / horiz)) / (float)(winattr.width / zoom);
-                        float b = (float)(y - (winattr.height / vert)) / (float)(winattr.height / zoom);;
-                        float curr_a = a;
-                        float curr_b = b;
+                        double a = (x - (winattr.width / horiz)) / (winattr.width / zoom);
+                        double b = (y - (winattr.height / vert)) / (winattr.height / zoom);
+                        double curr_a = a;
+                        double curr_b = b;
                         int n = 0;
 
-                        while (n < 100) {
-                            float iter_a = (a * a) - (b * b);
-                            float iter_b = 2 * a * b;
+                        while (n < max_iter) {
+                            double iter_a = (a * a) - (b * b);
+                            double iter_b = 2 * a * b;
                             a = iter_a + curr_a;
                             b = iter_b + curr_b;
 
@@ -200,30 +209,25 @@ int main(int argc, char *argv[]) {
                             }
                             n++;
                         }
-                        if (n == 100) {
+                        if (n == max_iter) {
                             values.foreground = 0;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);
-                            testing_1++;                                     
-                        } else if (n < 100 && n >= 10) {
+                            XDrawPoint(displ, win, gc, x, y);                                
+                        } else if (n < max_iter && n >= 10) {
                             values.foreground = n * n;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);
-                            testing_2++;                          
-                        } else if (n < 100 && n < 10) {
+                            XDrawPoint(displ, win, gc, x, y);                         
+                        } else if (n < max_iter && n < 10) {
                             values.foreground = n * n;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);
-                            testing_3++;                                
+                            XDrawPoint(displ, win, gc, x, y);                              
                         } else {
                             values.foreground = 0;
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);  
-                            testing_4++;
                         }
                     }
                 }
-                printf("Testing 1: %d\nTesting 2: %d\nTesting 3: %d\nTesting 4: %d\n", testing_1, testing_2, testing_3, testing_4);
             } else {
                 printf("Main Window Event.\n");
                 printf("Event Type: %d\n", event.type);
