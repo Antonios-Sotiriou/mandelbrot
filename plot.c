@@ -12,6 +12,10 @@ int main(int argc, char *argv[]) {
     XWindowAttributes winattr;
     XEvent event;
 
+    // Global window constants.
+    winattr.width = 800;
+    winattr.height = 800;
+
     // Locale optimisation.
     if (setlocale(LC_ALL, "") == NULL) {
         fprintf(stderr, "setlocale(LC_ALL, "") is NULL.\n");
@@ -36,7 +40,7 @@ int main(int argc, char *argv[]) {
     printf("Default screen value: %d\n", screen);
 
     /*  Root main Window */
-    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, 800, 800, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
+    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, winattr.width, winattr.height, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
     XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask /*| PointerMotionMask*/);
     XMapWindow(displ, win);
 
@@ -87,6 +91,14 @@ int main(int argc, char *argv[]) {
     double vert = 2.00;
     double zoom = 4.00;
     int max_iter = 100;
+
+    double min_x = 0 - (winattr.width / 2.00) / (winattr.width / 4.00);
+    double min_y = 0 - (winattr.height / 2.00) / (winattr.height / 4.00);
+    double init_x = ((winattr.width / 2.00) - (winattr.width / 2.00)) / (winattr.width / 4.00);
+    double init_y = ((winattr.height / 2.00) - (winattr.height / 2.00)) / (winattr.height / 4.00);
+    printf("Min_x value: %f\nMin_y value: %f\n", min_x, min_y);
+    printf("Init_x value: %f\nInit_y value: %f\n", init_x, init_y);  
+
     while (1) {
         while (XPending(displ) > 0) {
             XNextEvent(displ, &event);
@@ -103,25 +115,12 @@ int main(int argc, char *argv[]) {
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
-                printf("Expose Event occured.\n");
-            } else if (event.type == ButtonPress && event.xclient.window == win) {
-                printf("Mouse button clicked: %d\n", event.xbutton.button);
-                printf("Mouse button x position: %d\n", event.xbutton.x);
-                printf("Mouse button y position: %d\n", event.xbutton.y);
-                double center_x = (double)(event.xbutton.x - (winattr.width / 2.00)) / (double)(winattr.width / 4.00);
-                double center_y = (double)(event.xbutton.y - (winattr.height / 2.00)) / (double)(winattr.height / 4.00);
-                printf("X value: %f\nY value: %f\n", center_x, center_y);
-                
-                //zoom -= 0.10; 
+
                 for (int x = 0; x <= winattr.width; x++) {
                     for (int y = 0; y <= winattr.height; y++) {
 
-                        double a = (double)(x + event.xbutton.x) / (double)(winattr.width / 4.00);
-                        double b = (double)(y + event.xbutton.y) / (double)(winattr.height / 4.00);
-                        // if (y == 2) { 
-                        //     printf("A value: %f\nB value: %f\n", a, b);
-                        //     break;
-                        // }
+                        double a = (x - (winattr.width / horiz)) / (winattr.width / zoom);
+                        double b = (y - (winattr.height / vert)) / (winattr.height / zoom);
                         double curr_a = a;
                         double curr_b = b;
                         int n = 0;
@@ -138,13 +137,13 @@ int main(int argc, char *argv[]) {
                             n++;
                         }
                         if (n == max_iter) {
-                            values.foreground = 3517575;
+                            values.foreground = 0;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                                   
+                            XDrawPoint(displ, win, gc, x, y);                                
                         } else if (n < max_iter && n >= 10) {
                             values.foreground = n * n;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                          
+                            XDrawPoint(displ, win, gc, x, y);                         
                         } else if (n < max_iter && n < 10) {
                             values.foreground = n * n;
                             XChangeGC(displ, gc, GCForeground, &values);
@@ -152,13 +151,69 @@ int main(int argc, char *argv[]) {
                         } else {
                             values.foreground = 0;
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);
+                            XDrawPoint(displ, win, gc, x, y);  
                         }
                     }
-                    // if (x == 2) {
-                    //     break;
-                    // }
                 }
+                printf("Expose Event occured.\n");
+            } else if (event.type == ButtonPress && event.xclient.window == win) {
+                printf("Mouse button clicked: %d\n", event.xbutton.button);
+                printf("Mouse button x position: %d\n", event.xbutton.x);
+                printf("Mouse button y position: %d\n", event.xbutton.y);
+                double init_x = ((event.xbutton.x - (winattr.width / 2.00)) / (winattr.width / 4.00));
+                double init_y = ((event.xbutton.y - (winattr.height / 2.00)) / (winattr.height / 4.00));
+                double new_min_x = min_x - init_x;
+                double new_min_y = min_y - init_y;
+                printf("Init_x value: %f\nInit_y value: %f\n", init_x, init_y);
+                printf("New_min_x value: %f\nNew_min_y value: %f\n", new_min_x, new_min_y);
+                
+                //zoom -= 0.10; 
+                for (int x = 0; x <= winattr.width; x++) {
+                    for (int y = 0; y <= winattr.height; y++) {
+
+                        double a = ((x - (winattr.width / 2.00)) / (winattr.width / 4.00)) + new_min_x;
+                        double b = ((y - (winattr.height / 2.00)) / (winattr.height / 4.00)) + new_min_y;
+                        // if (x == 0) { 
+                        //     printf("A value: %f\nB value: %f\n", a, b);
+                        // }
+                        // break;
+                        double curr_a = a;
+                        double curr_b = b;
+                        int n = 0;
+
+                        while (n < max_iter) {;
+                            double iter_a = (a * a) - (b * b);
+                            double iter_b = 2 * a * b;
+                            a = iter_a + curr_a;
+                            b = iter_b + curr_b;
+
+                            if (abs(a + b) > 16) {
+                                break;
+                            }
+                            n++;
+                        }
+                        if (n == max_iter) {
+                            values.foreground = 0;
+                            XChangeGC(displ, gc, GCForeground, &values);
+                            XDrawPoint(displ, win, gc, x, y);                                
+                        } else if (n < max_iter && n >= 10) {
+                            values.foreground = n * n;
+                            XChangeGC(displ, gc, GCForeground, &values);
+                            XDrawPoint(displ, win, gc, x, y);                         
+                        } else if (n < max_iter && n < 10) {
+                            values.foreground = n * n;
+                            XChangeGC(displ, gc, GCForeground, &values);
+                            XDrawPoint(displ, win, gc, x, y);                              
+                        } else {
+                            values.foreground = 0;
+                            XChangeGC(displ, gc, GCForeground, &values);
+                            XDrawPoint(displ, win, gc, x, y);  
+                        }
+                    }
+                    // min_x = min_x + new_min_x;
+                    // min_y = min_y + new_min_y;
+                }
+
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
                 KeySym keysym = 0;
