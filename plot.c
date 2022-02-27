@@ -87,17 +87,16 @@ int main(int argc, char *argv[]) {
     values.fill_rule =  WindingRule;
     GC gc = XCreateGC(displ, win, GCLineWidth | GCLineStyle | GCFillStyle | GCFillRule, &values);
 
-    double horiz = 1.50;
+    double horiz = 2.00;
     double vert = 2.00;
     double zoom = 4.00;
     int max_iter = 100;
 
     double min_x = 0 - (winattr.width / 2.00) / (winattr.width / 4.00);
     double min_y = 0 - (winattr.height / 2.00) / (winattr.height / 4.00);
-    double init_x = ((winattr.width / 2.00) - (winattr.width / 2.00)) / (winattr.width / 4.00);
-    double init_y = ((winattr.height / 2.00) - (winattr.height / 2.00)) / (winattr.height / 4.00);
-    printf("Min_x value: %f\nMin_y value: %f\n", min_x, min_y);
-    printf("Init_x value: %f\nInit_y value: %f\n", init_x, init_y);  
+    double init_x = 0;
+    double init_y = 0;
+    printf("min_x value: %f\nmin_y value: %f\n", min_x, min_y);
 
     while (1) {
         while (XPending(displ) > 0) {
@@ -157,26 +156,21 @@ int main(int argc, char *argv[]) {
                 }
                 printf("Expose Event occured.\n");
             } else if (event.type == ButtonPress && event.xclient.window == win) {
-                printf("Mouse button clicked: %d\n", event.xbutton.button);
-                printf("Mouse button x position: %d\n", event.xbutton.x);
-                printf("Mouse button y position: %d\n", event.xbutton.y);
-                double init_x = ((event.xbutton.x - (winattr.width / 2.00)) / (winattr.width / 4.00));
-                double init_y = ((event.xbutton.y - (winattr.height / 2.00)) / (winattr.height / 4.00));
-                double new_min_x = min_x - init_x;
-                double new_min_y = min_y - init_y;
-                printf("Init_x value: %f\nInit_y value: %f\n", init_x, init_y);
-                printf("New_min_x value: %f\nNew_min_y value: %f\n", new_min_x, new_min_y);
+
+                if (init_x == 0.00 && init_y == 0.00) {
+                    init_x = (((double)event.xbutton.x - (winattr.width / 2.00)) / (winattr.width / 4.00));
+                    init_y = (((double)event.xbutton.y - (winattr.height / 2.00)) / (winattr.height / 4.00));
+                    printf("Init_x value: %f\nInit_y value: %f\n", init_x, init_y);
+                } else {
+                    init_x = init_x + (((double)event.xbutton.x - (winattr.width / 2.00)) / (winattr.width / 4.00));
+                    init_y = init_y + (((double)event.xbutton.y - (winattr.height / 2.00)) / (winattr.height / 4.00));
+                }
                 
-                //zoom -= 0.10; 
                 for (int x = 0; x <= winattr.width; x++) {
                     for (int y = 0; y <= winattr.height; y++) {
 
-                        double a = ((x - (winattr.width / 2.00)) / (winattr.width / 4.00)) + new_min_x;
-                        double b = ((y - (winattr.height / 2.00)) / (winattr.height / 4.00)) + new_min_y;
-                        // if (x == 0) { 
-                        //     printf("A value: %f\nB value: %f\n", a, b);
-                        // }
-                        // break;
+                        double a = ((x - (winattr.width / 2.00)) / (winattr.width / 4.00)) + init_x;
+                        double b = ((y - (winattr.height / 2.00)) / (winattr.height / 4.00)) + init_y;
                         double curr_a = a;
                         double curr_b = b;
                         int n = 0;
@@ -210,10 +204,7 @@ int main(int argc, char *argv[]) {
                             XDrawPoint(displ, win, gc, x, y);  
                         }
                     }
-                    // min_x = min_x + new_min_x;
-                    // min_y = min_y + new_min_y;
                 }
-
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
                 KeySym keysym = 0;
