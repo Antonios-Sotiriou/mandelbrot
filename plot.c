@@ -4,6 +4,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xlocale.h>
 
+#include "header_files/palette.h"
+
 int main(int argc, char *argv[]) {
 
     Display *displ;
@@ -92,11 +94,8 @@ int main(int argc, char *argv[]) {
     double zoom = 4.00;
     int max_iter = 100;
 
-    double min_x = 0 - (winattr.width / 2.00) / (winattr.width / 4.00);
-    double min_y = 0 - (winattr.height / 2.00) / (winattr.height / 4.00);
     double init_x = 0;
     double init_y = 0;
-    printf("min_x value: %f\nmin_y value: %f\n", min_x, min_y);
 
     while (1) {
         while (XPending(displ) > 0) {
@@ -154,23 +153,27 @@ int main(int argc, char *argv[]) {
                         }
                     }
                 }
-                printf("Expose Event occured.\n");
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (init_x == 0.00 && init_y == 0.00) {
-                    init_x = (((double)event.xbutton.x - (winattr.width / 2.00)) / (winattr.width / 4.00));
-                    init_y = (((double)event.xbutton.y - (winattr.height / 2.00)) / (winattr.height / 4.00));
-                    printf("Init_x value: %f\nInit_y value: %f\n", init_x, init_y);
+                    init_x = (((double)event.xbutton.x - (winattr.width / horiz)) / (winattr.width / zoom));
+                    init_y = (((double)event.xbutton.y - (winattr.height / vert)) / (winattr.height / zoom));
                 } else {
-                    init_x = init_x + (((double)event.xbutton.x - (winattr.width / 2.00)) / (winattr.width / 4.00));
-                    init_y = init_y + (((double)event.xbutton.y - (winattr.height / 2.00)) / (winattr.height / 4.00));
+                    init_x = init_x + (((double)event.xbutton.x - (winattr.width / horiz)) / (winattr.width / zoom));
+                    init_y = init_y + (((double)event.xbutton.y - (winattr.height / vert)) / (winattr.height / zoom));
+                }
+                
+                if (event.xkey.keycode == 1) {
+                    zoom *= 0.50;
+                } else if (event.xkey.keycode == 3) {
+                    zoom /= 0.50;
                 }
                 
                 for (int x = 0; x <= winattr.width; x++) {
                     for (int y = 0; y <= winattr.height; y++) {
 
-                        double a = ((x - (winattr.width / 2.00)) / (winattr.width / 4.00)) + init_x;
-                        double b = ((y - (winattr.height / 2.00)) / (winattr.height / 4.00)) + init_y;
+                        double a = ((x - (winattr.width / horiz)) / (winattr.width / zoom)) + init_x;
+                        double b = ((y - (winattr.height / vert)) / (winattr.height / zoom)) + init_y;
                         double curr_a = a;
                         double curr_b = b;
                         int n = 0;
@@ -181,7 +184,7 @@ int main(int argc, char *argv[]) {
                             a = iter_a + curr_a;
                             b = iter_b + curr_b;
 
-                            if (abs(a + b) > 16) {
+                            if (abs(a + b) > 16.00) {
                                 break;
                             }
                             n++;
@@ -191,7 +194,7 @@ int main(int argc, char *argv[]) {
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);                                
                         } else if (n < max_iter && n >= 10) {
-                            values.foreground = n * n;
+                            values.foreground = pallete[n];
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);                         
                         } else if (n < max_iter && n < 10) {
@@ -199,9 +202,9 @@ int main(int argc, char *argv[]) {
                             XChangeGC(displ, gc, GCForeground, &values);
                             XDrawPoint(displ, win, gc, x, y);                              
                         } else {
-                            values.foreground = 0;
+                            values.foreground = pallete[270 - n];
                             XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);  
+                            XDrawPoint(displ, win, gc, x, y);
                         }
                     }
                 }
