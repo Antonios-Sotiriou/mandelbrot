@@ -4,7 +4,9 @@
 #include <X11/Xlib.h>
 #include <X11/Xlocale.h>
 
+#include "header_files/objects.h"
 #include "header_files/palette.h"
+#include "header_files/iterator.h"
 
 int main(int argc, char *argv[]) {
 
@@ -13,10 +15,12 @@ int main(int argc, char *argv[]) {
     Window win;
     XWindowAttributes winattr;
     XEvent event;
+    Object obj;
 
     // Global window constants.
-    winattr.width = 800;
-    winattr.height = 800;
+    obj.winattr = &winattr;
+    obj.winattr->width = 800;
+    obj.winattr->height = 800;
 
     // Locale optimisation.
     if (setlocale(LC_ALL, "") == NULL) {
@@ -36,15 +40,18 @@ int main(int argc, char *argv[]) {
     if (displ == NULL) {
         fprintf(stderr, "Failed to open Display.\n");
         exit(1);
+    } else {
+        obj.displ = displ;
     }
 
     screen = DefaultScreen(displ);
     printf("Default screen value: %d\n", screen);
 
     /*  Root main Window */
-    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, winattr.width, winattr.height, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
+    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, obj.winattr->width, obj.winattr->height, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
     XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask /*| PointerMotionMask*/);
     XMapWindow(displ, win);
+    obj.win = win;
 
     /* Delete window initializer area */
     Atom wm_delete_window = XInternAtom(displ, "WM_DELETE_WINDOW", False);
@@ -89,13 +96,15 @@ int main(int argc, char *argv[]) {
     values.fill_rule =  WindingRule;
     GC gc = XCreateGC(displ, win, GCLineWidth | GCLineStyle | GCFillStyle | GCFillRule, &values);
 
-    double horiz = 2.00;
-    double vert = 2.00;
-    double zoom = 4.00;
-    int max_iter = 100;
 
-    double init_x = 0;
-    double init_y = 0;
+    obj.gc = gc;
+    obj.values = values;
+    obj.max_iter = 100;
+    obj.horiz = 2.00;
+    obj.vert = 2.00;
+    obj.zoom = 4.00;
+    obj.init_x = 0;
+    obj.init_y = 0;
 
     while (1) {
         while (XPending(displ) > 0) {
@@ -113,101 +122,24 @@ int main(int argc, char *argv[]) {
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
-
-                for (int x = 0; x <= winattr.width; x++) {
-                    for (int y = 0; y <= winattr.height; y++) {
-
-                        double a = (x - (winattr.width / horiz)) / (winattr.width / zoom);
-                        double b = (y - (winattr.height / vert)) / (winattr.height / zoom);
-                        double curr_a = a;
-                        double curr_b = b;
-                        int n = 0;
-
-                        while (n < max_iter) {
-                            double iter_a = (a * a) - (b * b);
-                            double iter_b = 2 * a * b;
-                            a = iter_a + curr_a;
-                            b = iter_b + curr_b;
-
-                            if (abs(a + b) > 16) {
-                                break;
-                            }
-                            n++;
-                        }
-                        if (n == max_iter) {
-                            values.foreground = 0;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                                
-                        } else if (n < max_iter && n >= 10) {
-                            values.foreground = n * n;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                         
-                        } else if (n < max_iter && n < 10) {
-                            values.foreground = n * n;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                              
-                        } else {
-                            values.foreground = 0;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);  
-                        }
-                    }
-                }
+                obj.winattr = &winattr;
+                iterator(obj);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
-                if (init_x == 0.00 && init_y == 0.00) {
-                    init_x = (((double)event.xbutton.x - (winattr.width / horiz)) / (winattr.width / zoom));
-                    init_y = (((double)event.xbutton.y - (winattr.height / vert)) / (winattr.height / zoom));
+                if (obj.init_x == 0.00 && obj.init_y == 0.00) {
+                    obj.init_x = (((double)event.xbutton.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom));
+                    obj.init_y = (((double)event.xbutton.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom));
                 } else {
-                    init_x = init_x + (((double)event.xbutton.x - (winattr.width / horiz)) / (winattr.width / zoom));
-                    init_y = init_y + (((double)event.xbutton.y - (winattr.height / vert)) / (winattr.height / zoom));
+                    obj.init_x = obj.init_x + (((double)event.xbutton.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom));
+                    obj.init_y = obj.init_y + (((double)event.xbutton.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom));
                 }
                 
                 if (event.xkey.keycode == 1) {
-                    zoom *= 0.50;
+                    obj.zoom *= 0.50;
                 } else if (event.xkey.keycode == 3) {
-                    zoom /= 0.50;
+                    obj.zoom /= 0.50;
                 }
-                
-                for (int x = 0; x <= winattr.width; x++) {
-                    for (int y = 0; y <= winattr.height; y++) {
-
-                        double a = ((x - (winattr.width / horiz)) / (winattr.width / zoom)) + init_x;
-                        double b = ((y - (winattr.height / vert)) / (winattr.height / zoom)) + init_y;
-                        double curr_a = a;
-                        double curr_b = b;
-                        int n = 0;
-
-                        while (n < max_iter) {;
-                            double iter_a = (a * a) - (b * b);
-                            double iter_b = 2 * a * b;
-                            a = iter_a + curr_a;
-                            b = iter_b + curr_b;
-
-                            if (abs(a + b) > 16.00) {
-                                break;
-                            }
-                            n++;
-                        }
-                        if (n == max_iter) {
-                            values.foreground = 0;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                                
-                        } else if (n < max_iter && n >= 10) {
-                            values.foreground = pallete[n];
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                         
-                        } else if (n < max_iter && n < 10) {
-                            values.foreground = n * n;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                              
-                        } else {
-                            values.foreground = pallete[270 - n];
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);
-                        }
-                    }
-                }
+                iterator(obj);  
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
                 KeySym keysym = 0;
@@ -227,63 +159,23 @@ int main(int argc, char *argv[]) {
                 }
                 printf("Pressed key: %lu.\n", keysym);
                 if (keysym == 65361) {
-                    horiz *= 0.50;
+                    obj.horiz += 0.01;
                 } else if (keysym == 65363) {
-                    horiz /= 0.50;
+                    obj.horiz -= 0.01;
                 } else if (keysym == 65362) {
-                    vert *= 0.50; 
+                    obj.vert += 0.01; 
                 } else if (keysym == 65364) {
-                    vert /= 0.50;
+                    obj.vert -= 0.01;
                 } else if (keysym == 65293) {
-                    zoom *= 0.50;
+                    obj.zoom *= 0.50;
                 }
-
-                for (int x = 0; x <= winattr.width; x++) {
-                    for (int y = 0; y <= winattr.height; y++) {
-
-                        double a = (x - (winattr.width / horiz)) / (winattr.width / zoom);
-                        double b = (y - (winattr.height / vert)) / (winattr.height / zoom);
-                        double curr_a = a;
-                        double curr_b = b;
-                        int n = 0;
-
-                        while (n < max_iter) {
-                            double iter_a = (a * a) - (b * b);
-                            double iter_b = 2 * a * b;
-                            a = iter_a + curr_a;
-                            b = iter_b + curr_b;
-
-                            if (abs(a + b) > 16) {
-                                break;
-                            }
-                            n++;
-                        }
-                        if (n == max_iter) {
-                            values.foreground = 0;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                                
-                        } else if (n < max_iter && n >= 10) {
-                            values.foreground = n * n;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                         
-                        } else if (n < max_iter && n < 10) {
-                            values.foreground = n * n;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);                              
-                        } else {
-                            values.foreground = 0;
-                            XChangeGC(displ, gc, GCForeground, &values);
-                            XDrawPoint(displ, win, gc, x, y);  
-                        }
-                    }
-                }
+                iterator(obj);
             } else {
                 printf("Main Window Event.\n");
                 printf("Event Type: %d\n", event.type);
             }
         }
     }
-
     return 0;
 }
 

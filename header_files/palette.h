@@ -1,7 +1,7 @@
 #ifndef PALETTE_H
 #define PALETTE_H
 
-int pallete[] = {
+static const int pallete[] = {
     0xF44336,
     0xFFEBEE,
     0xFFCDD2,

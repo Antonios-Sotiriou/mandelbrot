@@ -7,7 +7,7 @@ RM = rm
 LINKS = -lX11
 
 all:
-	$(CC) $(CFLAGS) plot.c  -o $(OBJ) $(LINKS)
+	$(CC) $(CFLAGS) plot.c iterator.c painter.c -o $(OBJ) $(LINKS)
 exec:
 
 clean:
