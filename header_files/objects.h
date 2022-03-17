@@ -15,6 +15,8 @@ typedef struct {
     double zoom; 
     double init_x; 
     double init_y;
+    int x;
+    int y;
 } Object;
 
 #endif /* OBJECTS_H */
