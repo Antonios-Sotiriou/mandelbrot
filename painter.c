@@ -11,7 +11,7 @@ void painter(Object obj, int n, int x, int y) {
         XChangeGC(obj.displ, obj.gc, GCForeground, &obj.values);
         XDrawPoint(obj.displ, obj.win, obj.gc, x, y);                                
     } else if (n < obj.max_iter && n > 18) {
-        obj.values.foreground = pallete[100 - n];
+        obj.values.foreground = pallete[n];
         XChangeGC(obj.displ, obj.gc, GCForeground, &obj.values);
         XDrawPoint(obj.displ, obj.win, obj.gc, x, y);                                                    
     } else if (n < obj.max_iter && n <= 18) {

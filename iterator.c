@@ -22,7 +22,7 @@ int iterator(Object obj) {
                 a = iter_a + curr_a;
                 b = iter_b + curr_b;
 
-                if (a + b >= 4.00) {
+                if (a + b > 4.00) {
                     break;
                 }
                 n++;
