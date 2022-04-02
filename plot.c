@@ -90,12 +90,9 @@ int main(int argc, char *argv[]) {
 
     /* Add grafical context to window */
     XGCValues values;
-    values.line_width = 0;
-    values.line_style = LineSolid;
-    values.fill_style = FillSolid;
-    values.fill_rule =  WindingRule;
-    GC gc = XCreateGC(displ, win, GCLineWidth | GCLineStyle | GCFillStyle | GCFillRule, &values);
-
+    values.foreground = XWhitePixel(displ, screen);
+    values.background = XBlackPixel(displ, screen);
+    GC gc = XCreateGC(displ, win, GCForeground | GCBackground, &values);
 
     obj.gc = gc;
     obj.values = values;
