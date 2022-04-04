@@ -9,9 +9,10 @@
 int iterator(Object obj) {
 
     unsigned char *image_data;
-    image_data = calloc(1, sizeof(char) * obj.winattr->width * obj.winattr->height * 32);
+    image_data = calloc(1, sizeof(char) * obj.winattr->width * obj.winattr->height * 4);
     if (image_data == NULL) {
         printf("Not Enough memory for the image_data to be allocated...Exit status 1");
+        free(image_data);
         exit(1);
     }
 
@@ -64,6 +65,7 @@ int iterator(Object obj) {
 
     XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
     free(image_data);
+    XFree(image);
 
     return 0;
 }
