@@ -9,6 +9,7 @@ typedef struct {
     GC gc;
     XGCValues values;
     XWindowAttributes *winattr;
+    Pixmap pixmap;
     int max_iter;
     double horiz; 
     double vert;
