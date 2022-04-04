@@ -7,17 +7,17 @@
 void painter(Object obj, int n, int x, int y) {
 
     if (n == obj.max_iter) {
-        obj.values.foreground = pallete[n];
+        obj.values.foreground = palette[n];
         XChangeGC(obj.displ, obj.gc, GCForeground, &obj.values);
-        XDrawPoint(obj.displ, obj.win, obj.gc, x, y);                                
+        XDrawPoint(obj.displ, obj.pixmap, obj.gc, x, y);
     } else if (n < obj.max_iter && n > 18) {
-        obj.values.foreground = pallete[n];
+        obj.values.foreground = palette[n];
         XChangeGC(obj.displ, obj.gc, GCForeground, &obj.values);
-        XDrawPoint(obj.displ, obj.win, obj.gc, x, y);                                                    
+        XDrawPoint(obj.displ, obj.pixmap, obj.gc, x, y);
     } else if (n < obj.max_iter && n <= 18) {
         obj.values.foreground = 0x000000;
         XChangeGC(obj.displ, obj.gc, GCForeground, &obj.values);
-        XDrawPoint(obj.displ, obj.win, obj.gc, x, y);
+        XDrawPoint(obj.displ, obj.pixmap, obj.gc, x, y);
     }
 }
 
