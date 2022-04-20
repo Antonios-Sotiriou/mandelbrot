@@ -1,7 +1,7 @@
 #ifndef PAINTER_H
 #define PAINTER_H
 
-void painter(Object obj, int n, int x, int y);
+void painter(Object obj);
 
 #endif /* PAINTER_H */
 
