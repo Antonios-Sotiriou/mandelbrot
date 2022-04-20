@@ -4,6 +4,9 @@
 #include <X11/Xlib.h>
 #include <X11/Xlocale.h>
 
+// Time included for testing execution time
+#include <time.h>
+
 #include "header_files/objects.h"
 #include "header_files/palette.h"
 #include "header_files/iterator.h"
@@ -96,7 +99,7 @@ int main(int argc, char *argv[]) {
 
     obj.gc = gc;
     obj.values = values;
-    obj.max_iter = 100;
+    obj.max_iter = 1000;
     obj.horiz = 2.00;
     obj.vert = 2.00;
     obj.zoom = 4.00;
@@ -136,7 +139,12 @@ int main(int argc, char *argv[]) {
                 } else if (event.xkey.keycode == 3) {
                     obj.zoom /= 0.50;
                 }
-                iterator(obj);  
+                // time count...
+                clock_t begin = clock();
+                iterator(obj);
+                clock_t end = clock();
+                double exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
+                printf("Iterator Execution Time : %f\n", exec_time);
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
                 KeySym keysym = 0;
