@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #include "header_files/objects.h"
 #include "header_files/painter.h"
@@ -18,7 +20,6 @@ int iterator(Object obj) {
     int counter = 0; // pixels counter.Its incremented by four to include rgba pixel values
     int x = 0;
     int y = 0;
-
     for (int i = 0; i <= obj.winattr->width * obj.winattr->height; i++) {
 
         if (x == obj.winattr->width) {
