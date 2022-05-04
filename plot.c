@@ -176,8 +176,8 @@ int main(int argc, char *argv[]) {
                 }
                 iterator(obj);
             } else {
-                printf("Main Window Event.\n");
-                printf("Event Type: %d\n", event.type);
+                //printf("Main Window Event.\n");
+                //printf("Event Type: %d\n", event.type);
             }
         }
     }

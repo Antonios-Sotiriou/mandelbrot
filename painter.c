@@ -1,6 +1,4 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <X11/Xlib.h>
 
 #include "header_files/palette.h"
 #include "header_files/objects.h"
