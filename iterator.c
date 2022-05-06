@@ -12,7 +12,7 @@
 int iterator(Object obj) {
 
     pthread_t threads[10];
-    pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&iterMutex, NULL);
 
     obj.image_data = calloc(1, sizeof(char) * obj.winattr->width * obj.winattr->height * 4);
     if (obj.image_data == NULL) {
@@ -28,24 +28,18 @@ int iterator(Object obj) {
 
     for (int i = 0; i < 10; i++) {
         obj.step_point = (obj.winattr->width * obj.winattr->height / 10) * (i + 1);
-        if (pthread_create(&threads[i], NULL, &threader, &obj)) {
+        if (pthread_create(&threads[i], NULL, &threader, &obj) != 0) {
             printf("Thread number %d failed to start...Exit status 1\n", i);
             exit(1);
         }
-        printf("Starting point: %d\n", obj.start_point);
-        printf("Step point: %d\n", obj.step_point);
         obj.start_point = obj.step_point;
+        printf("Step x from main function: %d\n", obj.step_x);
     }
     for (int i = 0; i < 10; i++) {
-        if (pthread_join(threads[i], NULL)) {
+        if (pthread_join(threads[i], NULL) != 0) {
             printf("Thread number %d failed to join...Exit status 1\n", i);
             exit(1);
         }
-        printf("Thread Joined: %d\n", i);
-    }
-
-    for (int z = 0; z <= 100; z++) {
-        printf("Image data : %c\n", obj.image_data[z]);
     }
 
     XImage *image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, obj.image_data, obj.winattr->width, obj.winattr->height, 32, 0);
@@ -58,9 +52,7 @@ int iterator(Object obj) {
     free(obj.image_data);
     XFree(image);
 
-    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&iterMutex);
 
     return 0;
 }
-
-
