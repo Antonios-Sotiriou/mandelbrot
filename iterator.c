@@ -21,25 +21,29 @@ int iterator(Object obj) {
         exit(1);
     }
 
-    obj.step_counter = 0;
-    obj.step_x = 0;
-    obj.step_y = 0;
-    obj.start_point = 0;
 
     for (int i = 0; i < 10; i++) {
         obj.step_point = (obj.winattr->width * obj.winattr->height / 10) * (i + 1);
+        obj.step_counter = (obj.winattr->width * obj.winattr->height / 10) * i;
+        if (i == 0) {
+            obj.step_x = 0;
+            obj.step_y = 0;
+            obj.start_point = 0;
+        }
         if (pthread_create(&threads[i], NULL, &threader, &obj) != 0) {
             printf("Thread number %d failed to start...Exit status 1\n", i);
             exit(1);
         }
         obj.start_point = obj.step_point;
-        printf("Step x from main function: %d\n", obj.step_x);
+        printf("Step_x: %d\n", obj.step_x);
+        printf("Step counter: %d\n", obj.step_counter);
     }
     for (int i = 0; i < 10; i++) {
         if (pthread_join(threads[i], NULL) != 0) {
             printf("Thread number %d failed to join...Exit status 1\n", i);
             exit(1);
         }
+        printf("Thread %d Joined\n", i);
     }
 
     XImage *image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, obj.image_data, obj.winattr->width, obj.winattr->height, 32, 0);
