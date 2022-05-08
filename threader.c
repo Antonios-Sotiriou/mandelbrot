@@ -1,5 +1,5 @@
 #include "header_files/objects.h"
-#include "header_files/mutexes.h"
+// #include "header_files/mutexes.h"
 #include "header_files/painter.h"
 #include "header_files/threader.h"
 #include <stdio.h>
@@ -7,14 +7,15 @@
 
 void *threader(void *object) {
 
-    pthread_mutex_lock(&iterMutex);
+    // pthread_mutex_lock(&iterMutex);
 
     Object *obj = object;
-    int counter = obj->step_counter; // pixels counter.Its incremented by four to include rgba pixel values
-    int x = obj->step_x;
-    int y = obj->step_y;
-    printf("Start_point: %d\n", obj->start_point);
-    for (int i = obj->start_point; i < obj->step_point; i++) {
+    int counter = obj->step_counter;
+    printf("Step counter: %d\n", obj->step_counter);
+    int x = 0;
+    int y = 0;
+
+    for (int i = 0; i < obj->winattr->width * obj->winattr->height / 10; i++) {
 
         if (x == obj->winattr->width) {
             y += 1;
@@ -27,15 +28,9 @@ void *threader(void *object) {
         painter(*obj);
         counter += 4;
         x++;
-        printf("Value of x: %d\n", i);
     }
-    //printf("Value of x: %d\nValue of y: %d\n", x, y);
 
-    obj->step_x = x;
-    obj->step_y = y;
-    obj->step_counter = counter;
-
-    pthread_mutex_unlock(&iterMutex);
+    // pthread_mutex_unlock(&iterMutex);
 
     return 0;
 }
