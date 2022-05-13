@@ -3,11 +3,11 @@
 #include <string.h>
 
 #include "header_files/threader.h"
-
+#include <signal.h>
 #include "header_files/objects.h"
 #include "header_files/palette.h"
 
-int iterator(Object obj) {
+int iterator(Object obj, int pid) {
 
     obj.image_data = calloc(1, sizeof(char) * obj.winattr->width * obj.winattr->height * 4);
     if (obj.image_data == NULL) {
@@ -15,7 +15,7 @@ int iterator(Object obj) {
         free(obj.image_data);
         exit(1);
     }
-
+    kill(pid, SIGUSR1); ////////////////////////////////////////////////////
     threader(&obj);
 
     XImage *image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, obj.image_data, obj.winattr->width, obj.winattr->height, 32, 0);
