@@ -4,6 +4,11 @@
 #include <X11/Xlib.h>
 #include <X11/Xlocale.h>
 
+// multiprocessing includes
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
 // Time included for testing execution time
 #include <time.h>
 
@@ -12,6 +17,16 @@
 #include "header_files/iterator.h"
 
 int main(int argc, char *argv[]) {
+
+    int pid_1 = fork();
+    if (pid_1 == -1) {
+        printf("Somethink went wrong while forking...!Exiting 1\n");
+        exit(1);
+    } else if (pid_1 == 0) {
+        // child process
+        printf("Process id step1: %d\n", getpid());
+        execlp("./plot2", "first", "second", "third", NULL);
+    }
 
     Display *displ;
     int screen;
@@ -117,13 +132,14 @@ int main(int argc, char *argv[]) {
                         XFreeGC(displ, gc);
                     }
                     XCloseDisplay(displ);
+                    kill(pid_1, SIGKILL); /////////////////////////////////////////////////////////
                     return 0;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
-                iterator(obj);
+                iterator(obj, pid_1);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
@@ -141,7 +157,7 @@ int main(int argc, char *argv[]) {
                 }
                 // time count...
                 clock_t begin = clock();
-                iterator(obj);
+                iterator(obj, pid_1);
                 clock_t end = clock();
                 double exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
@@ -174,13 +190,14 @@ int main(int argc, char *argv[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
-                iterator(obj);
+                iterator(obj, pid_1);
             } else {
                 //printf("Main Window Event.\n");
                 //printf("Event Type: %d\n", event.type);
             }
         }
     }
+    wait(NULL);
     return 0;
 }
 
