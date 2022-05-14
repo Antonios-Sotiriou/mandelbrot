@@ -7,7 +7,7 @@
 #include "header_files/objects.h"
 #include "header_files/palette.h"
 
-int iterator(Object obj, int pid) {
+int iterator(Object obj, int pids[]) {
 
     obj.image_data = calloc(1, sizeof(char) * obj.winattr->width * obj.winattr->height * 4);
     if (obj.image_data == NULL) {
@@ -15,7 +15,10 @@ int iterator(Object obj, int pid) {
         free(obj.image_data);
         exit(1);
     }
-    kill(pid, SIGUSR1); ////////////////////////////////////////////////////
+    kill(pids[0], SIGUSR1); ////////////////////////////////////////////////////
+    kill(pids[1], SIGUSR1); ////////////////////////////////////////////////////
+    kill(pids[2], SIGUSR1); ////////////////////////////////////////////////////
+    kill(pids[3], SIGUSR1); ////////////////////////////////////////////////////
     threader(&obj);
 
     XImage *image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, obj.image_data, obj.winattr->width, obj.winattr->height, 32, 0);
