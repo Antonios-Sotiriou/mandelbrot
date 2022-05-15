@@ -18,18 +18,14 @@
 
 int main(int argc, char *argv[]) {
 
-    int pids[4];
-
-    for (int i = 0; i < 4; i++) {
-        pids[i] = fork();
-        if (pids[i] == -1) {
-            printf("Somethink went wrong while forking...!Exiting 1\n");
-            exit(1);
-        } else if (pids[i] == 0) {
-            // child process
-            printf("Process id step1: %d\n", getpid());
-            execlp("./plot2", "first", "second", "third", NULL);
-        }
+    int pid = fork();
+    if (pid == -1) {
+        printf("Somethink went wrong while forking...!Exiting 1\n");
+        exit(1);
+    } else if (pid == 0) {
+        // child process
+        printf("Process id step1: %d\n", getpid());
+        execlp("./plot2", "first", "second", "third", NULL);
     }
 
     Display *displ;
@@ -136,17 +132,14 @@ int main(int argc, char *argv[]) {
                         XFreeGC(displ, gc);
                     }
                     XCloseDisplay(displ);
-                    kill(pids[0], SIGKILL); /////////////////////////////////////////////////////////
-                    kill(pids[1], SIGKILL); /////////////////////////////////////////////////////////
-                    kill(pids[2], SIGKILL); /////////////////////////////////////////////////////////
-                    kill(pids[3], SIGKILL); /////////////////////////////////////////////////////////
+                    kill(pid, SIGKILL); /////////////////////////////////////////////////////////
                     return 0;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
-                iterator(obj, pids);
+                iterator(obj, pid);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
@@ -164,7 +157,7 @@ int main(int argc, char *argv[]) {
                 }
                 // time count...
                 clock_t begin = clock();
-                iterator(obj, pids);
+                iterator(obj, pid);
                 clock_t end = clock();
                 double exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
@@ -197,7 +190,7 @@ int main(int argc, char *argv[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
-                iterator(obj, pids);
+                iterator(obj, pid);
             } else {
                 //printf("Main Window Event.\n");
                 //printf("Event Type: %d\n", event.type);

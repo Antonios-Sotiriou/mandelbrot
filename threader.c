@@ -1,28 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// shared memory
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <semaphore.h>
+
 #include "header_files/objects.h"
 #include "header_files/painter.h"
 #include "header_files/threader.h"
 
-void *threader(void *object) {
+int threader() {
 
-    Object *obj = object;
+    printf("Entered threader, starting initialization\n");
+
+    Object *shmem;
+    key_t key = 9999;
+    int shmid = shmget(key, sizeof(Object) * sizeof(shmem), 0666 | IPC_CREAT);
+    shmem = shmat(shmid, NULL, 0);
+     
+    printf("Initialization completed.shmem.max_iter value : %d\n", shmem->max_iter);
+
+    shmctl(shmid, IPC_RMID, 0);
+
     int counter = 0;
     int x = 0;
     int y = 0;
 
-    for (int i = 0; i < obj->winattr->width * obj->winattr->height; i++) {
+    printf("Entering threader main loop\n");
 
-        if (x == obj->winattr->width) {
+    for (int i = 0; i < shmem->winattr->width * shmem->winattr->height; i++) {
+        
+        printf("Threader inside main loop\n");
+
+        if (x == shmem->winattr->width) {
             y += 1;
             x = 0;
         }
 
-        obj->x = x;
-        obj->y = y;
-        obj->counter = counter;
-        painter(*obj);
+        shmem->x = x;
+        shmem->y = y;
+        shmem->counter = counter;
+        painter(*shmem);
         counter += 4;
         x++;
     }
+
+    printf("Exiting threader main loop\n");
+
+    XImage *image = XCreateImage(shmem->displ, shmem->winattr->visual, shmem->winattr->depth, ZPixmap, 0, shmem->image_data, shmem->winattr->width, shmem->winattr->height, 32, 0);
+
+    Pixmap pixmap = XCreatePixmap(shmem->displ, shmem->win, shmem->winattr->width, shmem->winattr->height, shmem->winattr->depth);
+
+    XPutImage(shmem->displ, pixmap, shmem->gc, image, 0, 0, 0, 0, shmem->winattr->width, shmem->winattr->height);
+
+    XCopyArea(shmem->displ, pixmap, shmem->win, shmem->gc, 0, 0, shmem->winattr->width, shmem->winattr->height, 0, 0);
+    // free(shmem->image_data);
+    XFree(image);
+    
+    shmdt(shmem);
 
     return 0;
 }
