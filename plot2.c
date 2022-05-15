@@ -7,6 +7,7 @@
 // multiprocessing includes
 #include <unistd.h>
 #include <signal.h>
+#include <semaphore.h>
 
 // Time included for testing execution time
 #include <time.h>
@@ -14,8 +15,7 @@
 #include "header_files/threader.h"
 
 #include "header_files/objects.h"
-#include "header_files/palette.h"
-#include "header_files/iterator.h"
+// #include "header_files/semaphores.h"
 
 int LOOP_CON = 1;
 
@@ -23,7 +23,7 @@ void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
-    int sig_val;
+    int sig_val = 1;
 
     struct sigaction sig = { 0 };
     sig.sa_handler = &signal_handler;
@@ -34,17 +34,11 @@ int main(int argc, char *argv[]) {
         printf("Arguments list %d = %s\n", i, argv[i]);
     }
 
-    printf("Signal received, entering main loop\n");
-    printf("Signal value before loop: %d\n", sig_val);
-
     while (!sig_val) {
-        printf("Entered main loop\n");
         sleep(1);
-        printf("Process id step2: %d\n", getpid());
         if (LOOP_CON) {
-            printf("Loop contition has been met, calling threader()\n");
             threader();
-            printf("Threader finished, returning to loop\n");
+            // sem_post(&sem);
             LOOP_CON = 0;
         }
     }

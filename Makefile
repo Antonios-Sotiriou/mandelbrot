@@ -4,7 +4,7 @@ CC = gcc
 CFLAGS = -Wall -Werror -g
 OBJ = plot
 RM = rm
-LINKS = -lX11
+LINKS = -lX11 -pthread
 
 all:
 	$(CC) $(CFLAGS) plot.c iterator.c -o $(OBJ) $(LINKS);

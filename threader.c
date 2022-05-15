@@ -12,28 +12,22 @@
 
 int threader() {
 
-    printf("Entered threader, starting initialization\n");
-
     Object *shmem;
     key_t key = 9999;
-    int shmid = shmget(key, sizeof(Object) * sizeof(shmem), 0666 | IPC_CREAT);
+    int shmid = shmget(key, sizeof(Object), 0666 | IPC_CREAT);
     shmem = shmat(shmid, NULL, 0);
-     
-    printf("Initialization completed.shmem.max_iter value : %d\n", shmem->max_iter);
 
     shmctl(shmid, IPC_RMID, 0);
+
+    // shmem->image_data = calloc(1, sizeof(char) * 800 * 800 * 4);
 
     int counter = 0;
     int x = 0;
     int y = 0;
 
-    printf("Entering threader main loop\n");
+    for (int i = 0; i < 800 * 800; i++) {
 
-    for (int i = 0; i < shmem->winattr->width * shmem->winattr->height; i++) {
-        
-        printf("Threader inside main loop\n");
-
-        if (x == shmem->winattr->width) {
+        if (x == 800) {
             y += 1;
             x = 0;
         }
@@ -46,8 +40,6 @@ int threader() {
         x++;
     }
 
-    printf("Exiting threader main loop\n");
-
     XImage *image = XCreateImage(shmem->displ, shmem->winattr->visual, shmem->winattr->depth, ZPixmap, 0, shmem->image_data, shmem->winattr->width, shmem->winattr->height, 32, 0);
 
     Pixmap pixmap = XCreatePixmap(shmem->displ, shmem->win, shmem->winattr->width, shmem->winattr->height, shmem->winattr->depth);
@@ -55,6 +47,7 @@ int threader() {
     XPutImage(shmem->displ, pixmap, shmem->gc, image, 0, 0, 0, 0, shmem->winattr->width, shmem->winattr->height);
 
     XCopyArea(shmem->displ, pixmap, shmem->win, shmem->gc, 0, 0, shmem->winattr->width, shmem->winattr->height, 0, 0);
+
     // free(shmem->image_data);
     XFree(image);
     

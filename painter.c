@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "header_files/palette.h"
@@ -5,8 +6,8 @@
 
 void painter(Object obj) {
 
-    double a = (obj.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom) + obj.init_x;
-    double b = (obj.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom) + obj.init_y;
+    double a = (obj.x - (800 / obj.horiz)) / (800 / obj.zoom) + obj.init_x;
+    double b = (obj.y - (800 / obj.vert)) / (800 / obj.zoom) + obj.init_y;
     double curr_a = a;
     double curr_b = b;
 
@@ -22,15 +23,17 @@ void painter(Object obj) {
         }
         n++;
     }
-
+    
     if (n < obj.max_iter) {
         obj.image_data[obj.counter] =  n + n;
+        printf("pAINTING IMAGE\n");
         obj.image_data[obj.counter + 1] = n * 2;
         obj.image_data[obj.counter + 2] = 0;
     } else if (n == obj.max_iter) {
         obj.image_data[obj.counter] = 0;
         obj.image_data[obj.counter + 1] = 0;
         obj.image_data[obj.counter + 2] = 0;
+        printf("pAINTING IMAGE\n");
     }
 }
 

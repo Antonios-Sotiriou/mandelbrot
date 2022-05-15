@@ -9,7 +9,7 @@ typedef struct {
     GC gc;
     XGCValues values;
     XWindowAttributes *winattr;
-    char *image_data;
+    char image_data[0];
     int max_iter;
     int counter;
     int step_counter;
