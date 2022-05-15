@@ -11,30 +11,46 @@
 // Time included for testing execution time
 #include <time.h>
 
+#include "header_files/threader.h"
+
 #include "header_files/objects.h"
 #include "header_files/palette.h"
 #include "header_files/iterator.h"
+
+int LOOP_CON = 1;
 
 void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
+    int sig_val;
+
     struct sigaction sig = { 0 };
     sig.sa_handler = &signal_handler;
     sig.sa_flags = SA_RESTART;
-    sigaction(SIGUSR1, &sig, NULL);
+    sig_val = sigaction(SIGUSR1, &sig, NULL);
 
     for (int i = 0; i < argc; i++) {
         printf("Arguments list %d = %s\n", i, argv[i]);
     }
-    while (1) {
+
+    printf("Signal received, entering main loop\n");
+    printf("Signal value before loop: %d\n", sig_val);
+
+    while (!sig_val) {
+        printf("Entered main loop\n");
         sleep(1);
         printf("Process id step2: %d\n", getpid());
+        if (LOOP_CON) {
+            printf("Loop contition has been met, calling threader()\n");
+            threader();
+            printf("Threader finished, returning to loop\n");
+            LOOP_CON = 0;
+        }
     }
 }
 
 void signal_handler(int sig) {
-    char buffer[30] = "testing if function works\n";
-    write(1, &buffer, sizeof(buffer));
+    LOOP_CON = 1;
 }
 

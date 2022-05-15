@@ -1,7 +1,7 @@
 #ifndef THREADER_H
 #define THREADER_H
 
-void *threader(void *object);
+int threader();
 
 #endif /* THREADER_H */
 
