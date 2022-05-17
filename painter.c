@@ -26,14 +26,8 @@ void painter(Object obj) {
     
     if (n < obj.max_iter) {
         obj.image_data[obj.counter] =  n + n;
-        printf("pAINTING IMAGE\n");
         obj.image_data[obj.counter + 1] = n * 2;
         obj.image_data[obj.counter + 2] = 0;
-    } else if (n == obj.max_iter) {
-        obj.image_data[obj.counter] = 0;
-        obj.image_data[obj.counter + 1] = 0;
-        obj.image_data[obj.counter + 2] = 0;
-        printf("pAINTING IMAGE\n");
     }
 }
 
