@@ -37,8 +37,9 @@ int main(int argc, char *argv[]) {
     while (!sig_val) {
         sleep(1);
         if (LOOP_CON) {
-            threader();
+            //threader();
             // sem_post(&sem);
+            printf("Signal received from the child process!\n");
             LOOP_CON = 0;
         }
     }
