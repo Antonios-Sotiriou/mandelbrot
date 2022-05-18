@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <X11/Xlocale.h>
 
 // signals
 #include <signal.h>
