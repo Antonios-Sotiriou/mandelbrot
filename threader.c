@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 // shared memory
 #include <sys/ipc.h>
 #include <sys/shm.h>

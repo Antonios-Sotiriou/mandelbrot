@@ -1,7 +1,7 @@
 #ifndef SEM_VAR_H
 #define SEM_VAR_H
 
-static unsigned int sem_var = 0;
+extern unsigned int sem_var;
 
 #endif /* SEM_VAR_H */
 
