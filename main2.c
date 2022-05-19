@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 // multiprocessing includes
 #include <unistd.h>
@@ -26,19 +27,21 @@ int main(int argc, char *argv[]) {
     sig.sa_flags = SA_RESTART;
     sig_val = sigaction(SIGUSR1, &sig, NULL);
 
-    for (int i = 0; i < argc; i++) {
-        printf("Arguments list %d = %s\n", i, argv[i]);
+    // for (int i = 0; i < argc; i++) {
+    //     printf("Arguments list %d = %s\n", i, argv[i]);
+    // }
+    if (strcmp(argv[0], "process_1") == 0) {
+        printf("Process_1 identified.Printing process argv[0] : %s\n", argv[0]);
     }
 
     while (!sig_val) {
         sleep(1);
         if (LOOP_CON) {
-            //threader();
-            // sem_post(&sem);
             printf("Signal received from the child process!\n");
             LOOP_CON = 0;
         }
     }
+    return 0;
 }
 
 void signal_handler(int sig) {

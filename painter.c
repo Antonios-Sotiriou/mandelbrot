@@ -5,8 +5,8 @@
 
 void painter(Object obj) {
 
-    double a = (obj.x - (800 / obj.horiz)) / (800 / obj.zoom) + obj.init_x;
-    double b = (obj.y - (800 / obj.vert)) / (800 / obj.zoom) + obj.init_y;
+    double a = (obj.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom) + obj.init_x;
+    double b = (obj.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom) + obj.init_y;
     double curr_a = a;
     double curr_b = b;
 

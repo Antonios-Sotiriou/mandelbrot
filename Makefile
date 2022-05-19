@@ -7,8 +7,8 @@ RM = rm
 LINKS = -lX11 -pthread
 
 all:
-	$(CC) $(CFLAGS) plot.c iterator.c painter.c threader.c global_vars.c -o $(OBJ) $(LINKS);
-	$(CC) $(CFLAGS) plot2.c -o plot2 $(LINKS);
+	$(CC) $(CFLAGS) main.c plot.c iterator.c painter.c threader.c locale.c global_vars.c -o $(OBJ) $(LINKS);
+	$(CC) $(CFLAGS) main2.c -o main2 $(LINKS);
 exec:
 
 clean:

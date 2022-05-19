@@ -1,7 +1,7 @@
+// general headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
-#include <X11/Xlocale.h>
 
 // multiprocessing includes
 #include <unistd.h>
@@ -11,21 +11,12 @@
 // Time included for testing execution time
 #include <time.h>
 
+// object specific headers
+#include "header_files/locale.h"
 #include "header_files/objects.h"
-#include "header_files/palette.h"
 #include "header_files/iterator.h"
 
-int main(int argc, char *argv[]) {
-
-    int pid = fork();
-    if (pid == -1) {
-        printf("Somethink went wrong while forking...!Exiting 1\n");
-        exit(1);
-    } else if (pid == 0) {
-        // child process
-        printf("Process id step1: %d\n", getpid());
-        execlp("./plot2", "first", "second", "third", NULL);
-    }
+int plot(int pid) {
 
     Display *displ;
     int screen;
@@ -39,19 +30,6 @@ int main(int argc, char *argv[]) {
     obj.winattr->width = 800;
     obj.winattr->height = 800;
 
-    // Locale optimisation.
-    if (setlocale(LC_ALL, "") == NULL) {
-        fprintf(stderr, "setlocale(LC_ALL, "") is NULL.\n");
-        exit(1);
-    }
-    if (!XSupportsLocale()) {
-        fprintf(stderr, "Locale is not supported.Exiting.\n");
-        exit(1);
-    }
-    if (XSetLocaleModifiers("") == NULL) {
-        fprintf(stderr, "XSetLocaleModifiers is NULL.\n");
-        exit(1);
-    }
 
     displ = XOpenDisplay(NULL);
     if (displ == NULL) {
@@ -196,7 +174,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    wait(NULL);
+
     return 0;
 }
 
