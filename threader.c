@@ -20,7 +20,7 @@ int threader(Object obj) {
     int x = 0;
     int y = 0;
 
-    for (int i = 0; i < 800 * 800; i++) {
+    for (int i = 0; i < obj.winattr->width * obj.winattr->height; i++) {
 
         if (x == obj.winattr->width) {
             y += 1;

@@ -1,3 +1,4 @@
+// general headers
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,13 +10,14 @@
 #include <sys/shm.h>
 #include <semaphore.h>
 
+// object specific headers
 #include "header_files/objects.h"
 #include "header_files/threader.h"
 // #include "header_files/semaphores.h"
 // #include "header_files/sem_var.h"
 
 int iterator(Object obj, int pid) {
-
+    
     // sem_init(&sem, 1, sem_var);
 
     // Object *shmem;
