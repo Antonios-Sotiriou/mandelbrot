@@ -16,7 +16,8 @@
 #include "header_files/objects.h"
 #include "header_files/iterator.h"
 
-int plot(int pid) {
+// General initialization and event handling.
+int plot(int pids[]) {
 
     Display *displ;
     int screen;
@@ -98,6 +99,10 @@ int plot(int pid) {
     obj.init_x = 0;
     obj.init_y = 0;
 
+    clock_t begin;
+    clock_t end;
+    double exec_time;
+
     while (1) {
         while (XPending(displ) > 0) {
             XNextEvent(displ, &event);
@@ -109,14 +114,21 @@ int plot(int pid) {
                         XFreeGC(displ, gc);
                     }
                     XCloseDisplay(displ);
-                    kill(pid, SIGKILL); /////////////////////////////////////////////////////////
+                    for (int i = 0; i < 10; i++) {
+                        kill(pids[i], SIGKILL); ////////////////////////////////////////////////////   
+                    }
                     return 0;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
-                iterator(obj, pid);
+                // time count...
+                begin = clock();
+                iterator(obj, pids);
+                end = clock();
+                exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
+                printf("Iterator Execution Time : %f\n", exec_time);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
@@ -133,10 +145,10 @@ int plot(int pid) {
                     obj.zoom /= 0.50;
                 }
                 // time count...
-                clock_t begin = clock();
-                iterator(obj, pid);
-                clock_t end = clock();
-                double exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
+                begin = clock();
+                iterator(obj, pids);
+                end = clock();
+                exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
@@ -167,7 +179,7 @@ int plot(int pid) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
-                iterator(obj, pid);
+                iterator(obj, pids);
             } else {
                 //printf("Main Window Event.\n");
                 //printf("Event Type: %d\n", event.type);
