@@ -9,13 +9,6 @@
 
 int threader(Object obj) {
 
-    // Object *shmem;
-    // key_t key = 9999;
-    // int shmid = shmget(key, sizeof(Object), 0666 | IPC_CREAT);
-    // shmem = shmat(shmid, NULL, 0);
-
-    // shmctl(shmid, IPC_RMID, 0);
-
     int counter = 0;
     int x = 0;
     int y = 0;

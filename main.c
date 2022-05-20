@@ -23,12 +23,11 @@ int main(int argc, char *argv[]) {
             return 1;
         } else if (pids[i] == 0) {
             // child process
-            printf("Process id step1: %d\n", getpid());
             execlp("./main2", process_num[i], NULL);
         }
     }
 
-    //plot(pid);
+    plot(pids);
     wait(NULL);
     
     return 0;
