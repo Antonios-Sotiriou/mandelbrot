@@ -8,10 +8,10 @@
 // object specific headers
 #include "header_files/locale.h"
 #include "header_files/objects.h"
-#include "header_files/plot.h"
+#include "header_files/board.h"
 
 int main(int argc, char *argv[]) {
-
+    
     locale_init();
 
     int pids[10];
@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    plot(pids);
+    board(pids);
     wait(NULL);
     
     return 0;

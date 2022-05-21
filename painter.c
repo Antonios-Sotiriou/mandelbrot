@@ -3,15 +3,18 @@
 #include "header_files/palette.h"
 #include "header_files/objects.h"
 
-void painter(Object obj) {
+// headers to be deleted
+#include <stdio.h>
 
-    double a = (obj.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom) + obj.init_x;
-    double b = (obj.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom) + obj.init_y;
+void painter(const KNOT knot, char *shmem) {
+
+    double a = (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
+    double b = (knot.y - (knot.height / knot.vert)) / (knot.height / knot.zoom) + knot.init_y;
     double curr_a = a;
     double curr_b = b;
 
     int n = 0;
-    while (n < obj.max_iter) {
+    while (n < knot.max_iter) {
         double iter_a = (a * a) - (b * b);
         double iter_b = 2 * a * b;
         a = iter_a + curr_a;
@@ -23,10 +26,10 @@ void painter(Object obj) {
         n++;
     }
     
-    if (n < obj.max_iter) {
-        obj.image_data[obj.counter] =  n + n;
-        obj.image_data[obj.counter + 1] = n * 2;
-        obj.image_data[obj.counter + 2] = 0;
+    if (n < knot.max_iter) {
+        shmem[knot.counter] =  n + n;
+        shmem[knot.counter + 1] = n * 2;
+        shmem[knot.counter + 2] = 0;
     }
 }
 

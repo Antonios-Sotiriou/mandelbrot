@@ -3,7 +3,7 @@
 
 #include "objects.h"
 
-int threader(Object obj);
+int threader(KNOT knot);
 
 #endif /* THREADER_H */
 

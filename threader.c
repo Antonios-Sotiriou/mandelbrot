@@ -4,32 +4,46 @@
 #include <semaphore.h>
 
 #include "header_files/objects.h"
-#include "header_files/threader.h"
 #include "header_files/painter.h"
 
-int threader(Object obj) {
+// headers to be deleted
+#include <stdio.h>
+#include "header_files/sem_th.h"
 
-    int counter = 0;
-    int x = 0;
-    int y = 0;
+int threader(KNOT knot) {
+    
+    // sem_init(&sem_th, 1, 1);
 
-    for (int i = 0; i < obj.winattr->width * obj.winattr->height; i++) {
+    char *shmem_2;
+    key_t key_2 = 9998;
+    int shmid_2 = shmget(key_2, knot.width * knot.height * 4, 0666);
+    shmem_2 = shmat(shmid_2, NULL, 0);
 
-        if (x == obj.winattr->width) {
+    printf("Image data: %s", shmem_2);
+    printf("Object data: %d **************************\n", knot.width);
+
+    // sem_wait(&sem_th);
+
+    int counter = knot.step_counter;
+    int x = knot.step_x;
+    int y = knot.step_y;
+
+    for (int i = 0; i < knot.width * knot.height; i++) {
+
+        if (x == knot.width) {
             y += 1;
             x = 0;
         }
 
-        obj.x = x;
-        obj.y = y;
-        obj.counter = counter;
-        painter(obj);
+        knot.x = x;
+        knot.y = y;
+        knot.counter = counter;
+        painter(knot, (char*)&shmem_2);
         counter += 4;
         x++;
     }
-
-    // shmdt(shmem);
-
+    sem_post(&sem_th);
+    printf("Exiting Threader ******************************************************\n");
     return 0;
 }
 
