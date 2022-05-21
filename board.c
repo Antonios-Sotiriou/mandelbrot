@@ -1,11 +1,12 @@
 // general headers
 #include <stdio.h>
 #include <stdlib.h>
-#include <X11/Xlib.h>
 
 // multiprocessing includes
 #include <unistd.h>
 #include <sys/wait.h>
+
+// signal
 #include <signal.h>
 
 // Time included for testing execution time
@@ -14,10 +15,10 @@
 // object specific headers
 #include "header_files/locale.h"
 #include "header_files/objects.h"
-#include "header_files/iterator.h"
+#include "header_files/transmitter.h"
 
 // General initialization and event handling.
-int plot(int pids[]) {
+int board(int pids[]) {
 
     Display *displ;
     int screen;
@@ -41,7 +42,6 @@ int plot(int pids[]) {
     }
 
     screen = DefaultScreen(displ);
-    printf("Default screen value: %d\n", screen);
 
     /*  Root main Window */
     win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, obj.winattr->width, obj.winattr->height, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
@@ -74,9 +74,9 @@ int plot(int pids[]) {
         fprintf(stderr, "Failed to obtain input method's styles.\n");
         exit(3);
     }
-    for (int i = 0; i < styles->count_styles; i++) {
-        printf("Styles supported %lu.\n", styles->supported_styles[i]);
-    }
+    // for (int i = 0; i < styles->count_styles; i++) {
+    //     printf("Styles supported %lu.\n", styles->supported_styles[i]);
+    // }
     xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, win, NULL);
     if (xic == NULL) {
         fprintf(stderr, "Could not open xic.\n");
@@ -125,7 +125,7 @@ int plot(int pids[]) {
                 obj.winattr = &winattr;
                 // time count...
                 begin = clock();
-                iterator(obj, pids);
+                transmitter(obj, pids);
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
@@ -146,7 +146,7 @@ int plot(int pids[]) {
                 }
                 // time count...
                 begin = clock();
-                iterator(obj, pids);
+                transmitter(obj, pids);
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
@@ -179,7 +179,7 @@ int plot(int pids[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
-                iterator(obj, pids);
+                transmitter(obj, pids);
             } else {
                 //printf("Main Window Event.\n");
                 //printf("Event Type: %d\n", event.type);

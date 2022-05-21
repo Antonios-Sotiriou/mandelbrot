@@ -3,8 +3,10 @@
 
 // multiprocessing includes
 #include <unistd.h>
-#include <signal.h>
 #include <semaphore.h>
+
+// signal
+#include <signal.h>
 
 // shared memory
 #include <sys/ipc.h>
@@ -13,10 +15,9 @@
 // Time included for testing execution time
 #include <time.h>
 
-#include "header_files/threader.h"
-
 #include "header_files/objects.h"
-#include "header_files/semaphores.h"
+#include "header_files/threader.h"
+#include "header_files/sem.h"
 
 int LOOP_CON = 0;
 int PROC_NUM = 0;
@@ -32,19 +33,32 @@ int main(int argc, char *argv[]) {
     sig.sa_handler = &signal_handler;
     sig_val = sigaction(SIGUSR1, &sig, NULL);
 
+    KNOT knot, *shmem;
+    key_t key = 9999;
+    int shmid = shmget(key, sizeof(KNOT), 0666);
+    shmem = shmat(shmid, NULL, 0);
+
+    // Knot object to transfer through the functions with values that the other objects can't carry through;
+    // KNOT knot;
+
     while (!sig_val) {
         sem_wait(&sem);
         if (LOOP_CON) {
 
-            Object obj, *shmem;
-            key_t key = 9999;
-            int shmid = shmget(key, sizeof(Object), 0666);
-            shmem = shmat(shmid, NULL, 0);
-            obj = *shmem;
+            knot = *shmem;
 
             if (strcmp(argv[0], "process_1") == 0) {
                 printf("Process_1 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 1;
+                knot.proc_num = 1;
+                knot.step_counter = 0;
+                knot.step_x = 0;
+                knot.step_y = 0;
+
+                printf("Received counter: %d\n", knot.counter);
+                printf("Received init_x: %f\n", knot.init_x);
+                printf("Received init_y: %f\n", knot.init_y);
+                threader(knot);
+                printf("Main2 finish before Threader\n");
             } else if (strcmp(argv[0], "process_2") == 0) {
                 printf("Process_2 identified.Printing process argv[0] : %s\n", argv[0]);
                 PROC_NUM = 2;
@@ -74,17 +88,13 @@ int main(int argc, char *argv[]) {
                 PROC_NUM = 10;
             }
             printf("Signal received from the child process!\n");
+            printf("Exiting Main2 Condition before threader!\n");
 
-            obj.counter = PROC_NUM;
-
-            printf("Received counter: %d\n", obj.counter);
-            printf("Received init_x: %f\n", obj.init_x);
-            printf("Received init_y: %f\n", obj.init_y);
             LOOP_CON = 0;
             sem_post(&sem);
         }
     }
-    // sem_close(&sem);
+
     return 0;
 }
 
