@@ -8,27 +8,24 @@
 
 // headers to be deleted
 #include <stdio.h>
-#include "header_files/sem_th.h"
+// #include "header_files/sem_th.h"
+#include <string.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
 
 int threader(KNOT knot) {
-    
-    // sem_init(&sem_th, 1, 1);
 
     char *shmem_2;
     key_t key_2 = 9998;
     int shmid_2 = shmget(key_2, knot.width * knot.height * 4, 0666);
     shmem_2 = shmat(shmid_2, NULL, 0);
 
-    printf("Image data: %s", shmem_2);
-    printf("Object data: %d **************************\n", knot.width);
-
-    // sem_wait(&sem_th);
-
     int counter = knot.step_counter;
     int x = knot.step_x;
     int y = knot.step_y;
 
-    for (int i = 0; i < knot.width * knot.height; i++) {
+    for (int i = 0; i < (knot.width * knot.height) / 10; i++) {
 
         if (x == knot.width) {
             y += 1;
@@ -38,12 +35,16 @@ int threader(KNOT knot) {
         knot.x = x;
         knot.y = y;
         knot.counter = counter;
-        painter(knot, (char*)&shmem_2);
+        painter(knot, shmem_2);
         counter += 4;
         x++;
     }
-    sem_post(&sem_th);
-    printf("Exiting Threader ******************************************************\n");
+
+    kill(getppid(), SIGUSR2);
+    shmdt(&shmid_2);
+
+    printf("Exiting Threader #################### %s\n", shmem_2);
+
     return 0;
 }
 
