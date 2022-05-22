@@ -18,29 +18,25 @@
 #include "header_files/objects.h"
 #include "header_files/threader.h"
 #include "header_files/sem.h"
+#include "header_files/sem_th.h"
 
 int LOOP_CON = 0;
-int PROC_NUM = 0;
 
 void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
     sem_init(&sem, 1, 10);
-    int sig_val = 1;
 
     struct sigaction sig = { 0 };
     sig.sa_handler = &signal_handler;
-    sig_val = sigaction(SIGUSR1, &sig, NULL);
+    int sig_val = sigaction(SIGUSR1, &sig, NULL);
 
     KNOT knot, *shmem;
-    key_t key = 9999;
+    key_t key = ftok("./knot_key", 9988);
     int shmid = shmget(key, sizeof(KNOT), 0666);
     shmem = shmat(shmid, NULL, 0);
-
-    // Knot object to transfer through the functions with values that the other objects can't carry through;
-    // KNOT knot;
-
+    
     while (!sig_val) {
         sem_wait(&sem);
         if (LOOP_CON) {
@@ -48,48 +44,58 @@ int main(int argc, char *argv[]) {
             knot = *shmem;
 
             if (strcmp(argv[0], "process_1") == 0) {
-                printf("Process_1 identified.Printing process argv[0] : %s\n", argv[0]);
-                knot.proc_num = 1;
+                // printf("Process_1 ##################################################: %s\n", argv[0]);
                 knot.step_counter = 0;
                 knot.step_x = 0;
                 knot.step_y = 0;
-
-                printf("Received counter: %d\n", knot.counter);
-                printf("Received init_x: %f\n", knot.init_x);
-                printf("Received init_y: %f\n", knot.init_y);
-                threader(knot);
-                printf("Main2 finish before Threader\n");
             } else if (strcmp(argv[0], "process_2") == 0) {
-                printf("Process_2 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 2;
+                // printf("Process_2 ##########: %s\n", argv[0]);
+                knot.step_counter = (((knot.width * knot.height) / 10) * 4);
+                knot.step_x = 0;
+                knot.step_y = knot.height / 10;
             } else if (strcmp(argv[0], "process_3") == 0) {
-                printf("Process_3 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 3;
+                // printf("Process_3 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 2) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 2;
             } else if (strcmp(argv[0], "process_4") == 0) {
-                printf("Process_4 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 4;
+                // printf("Process_4 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 3) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 3;
             } else if (strcmp(argv[0], "process_5") == 0) {
-                printf("Process_5 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 5;
+                // printf("Process_5 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 4) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 4;
             } else if (strcmp(argv[0], "process_6") == 0) {
-                printf("Process_6 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 6;
+                // printf("Process_6 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 5) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 5;
             } else if (strcmp(argv[0], "process_7") == 0) {
-                printf("Process_7 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 7;
+                // printf("Process_7 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 6) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 6;
             } else if (strcmp(argv[0], "process_8") == 0) {
-                printf("Process_8 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 8;
+                // printf("Process_8 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 7) *4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 7;
             } else if (strcmp(argv[0], "process_9") == 0) {
-                printf("Process_9 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 9;
+                // printf("Process_9 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 8) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 8;
             } else if (strcmp(argv[0], "process_10") == 0) {
-                printf("Process_10 identified.Printing process argv[0] : %s\n", argv[0]);
-                PROC_NUM = 10;
+                // printf("Process_10 ##########: %s\n", argv[0]);
+                knot.step_counter = ((((knot.width * knot.height) / 10) * 9) * 4);
+                knot.step_x = 0;
+                knot.step_y = (knot.height / 10) * 9;
             }
-            printf("Signal received from the child process!\n");
-            printf("Exiting Main2 Condition before threader!\n");
 
+            threader(knot);
             LOOP_CON = 0;
             sem_post(&sem);
         }

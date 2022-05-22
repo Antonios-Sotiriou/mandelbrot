@@ -6,6 +6,11 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+// shared memory
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <semaphore.h>
+
 // signal
 #include <signal.h>
 
@@ -17,8 +22,46 @@
 #include "header_files/objects.h"
 #include "header_files/transmitter.h"
 
+// initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
+KNOT init_knot(KNOT *knot, const Object obj) {
+
+    knot->width = obj.winattr->width;
+    knot->height = obj.winattr->height;
+    knot->horiz = obj.horiz;
+    knot->vert = obj.vert;
+    knot->max_iter = obj.max_iter;
+    knot->zoom = obj.zoom;
+    knot->x = obj.x;
+    knot->y = obj.y;
+    knot->init_x = obj.init_x;
+    knot->init_y = obj.init_y;
+
+    return *knot;
+}
+
 // General initialization and event handling.
 int board(int pids[]) {
+
+    // object to transfer between processes the integer variables for each process calculations.
+    KNOT knot, *shknot;
+    key_t key = ftok("./knot_key", 9988);
+    int shknotid = shmget(key, sizeof(KNOT), 0666);
+    shknot = shmat(shknotid, NULL, 0);
+
+    if (shknot == NULL) {
+        perror("shmat()");
+        return 1;
+    }
+
+    char *shmem_2;
+    key_t key_2 = 9998;
+    int shmid_2 = shmget(key_2, sizeof(char) * 800 * 800 * 4, 0666);
+    shmem_2 = shmat(shmid_2, NULL, 0);
+
+    if (shmem_2 == NULL) {
+        perror("shmat()");
+        return 1;
+    }
 
     Display *displ;
     int screen;
@@ -117,18 +160,26 @@ int board(int pids[]) {
                     for (int i = 0; i < 10; i++) {
                         kill(pids[i], SIGKILL); ////////////////////////////////////////////////////   
                     }
+                    shmdt(&shknotid);
+                    shmdt(&shmid_2);
+                    shmctl(shknotid, IPC_RMID, 0);
+                    shmctl(shmid_2, IPC_RMID, 0);
                     return 0;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
+                // initialize knot object and set shared memory vaues equal to knot.
+                *shknot = init_knot(&knot, obj);
                 // time count...
                 begin = clock();
                 transmitter(obj, pids);
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
+                // shmdt(&shknotid);
+                // shmctl(shknotid, IPC_RMID, 0);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
@@ -144,12 +195,15 @@ int board(int pids[]) {
                 } else if (event.xkey.keycode == 3) {
                     obj.zoom /= 0.50;
                 }
+                *shknot = init_knot(&knot, obj);
                 // time count...
                 begin = clock();
                 transmitter(obj, pids);
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
+                // shmdt(&shknotid);
+                // shmctl(shknotid, IPC_RMID, 0);
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
                 KeySym keysym = 0;
