@@ -40,7 +40,7 @@ int threader(KNOT knot) {
         x++;
     }
 
-    kill(getppid(), SIGUSR2);
+    kill(getppid(), SIGRTMIN);
     shmdt(&shmid_2);
 
     printf("Exiting Threader #################### %s\n", shmem_2);

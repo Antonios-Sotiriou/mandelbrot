@@ -59,3 +59,26 @@ int main(int argc, char *argv[]) {
     
     return 0;
 }
+
+        // FIFO IMPLEMENTATION
+
+    // fifo headers for write only
+    // #include <sys/stat.h>
+    // error simillar headers
+    // #include <errno.h>
+    // if (mkfifo("./mdfifo", 0666) == -1) {
+    //     if (errno != EEXIST) {
+    //         perror("mkfifo()");
+    //         return 1;
+    //     }
+    // }
+
+    // fifo headers for read only
+    // #include <fcntl.h>
+    // int fd = open("./mdfifo", O_WRONLY);
+    // if (write(fd, &obj, sizeof(Object)) == -1) {
+    //     perror("write() fifo...");
+    // }
+    // close(fd);
+
+    
