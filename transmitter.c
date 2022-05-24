@@ -48,20 +48,24 @@ int transmitter(Object obj, int pids[]) {
     for (int i = 0; i < 10; i++) {
         kill(pids[i], SIGUSR1);
     }
-
+    printf("Condition BEFORE loop: %d\n", WAIT_CON);
     // waiting for the threader signal to break out of this waiting loop.
     while (1) {
-        if (WAIT_CON != 0) {
+        // sleep(1);
+        if (WAIT_CON < 10 && WAIT_CON > 0) {
+            // printf("Condition IN loop: %d\n", WAIT_CON);
             image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, shmem_2, obj.winattr->width, obj.winattr->height, 32, 0);
             pixmap = XCreatePixmap(obj.displ, obj.win, obj.winattr->width, obj.winattr->height, obj.winattr->depth);
             XPutImage(obj.displ, pixmap, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
             XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
         } else if (WAIT_CON == 10) {
             XFree(image);
+            // printf("Condition IS 10 IN loop: %d\n", WAIT_CON);
             WAIT_CON = 0;
             break;
         }
     }
+    printf("Condition AFTER loop: %d\n", WAIT_CON);
 
     // closing the semaphore which used in main2.c because we can't close it there.
     sem_close(&sem);
