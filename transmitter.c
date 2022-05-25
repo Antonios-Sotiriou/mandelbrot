@@ -30,7 +30,15 @@ int transmitter(Object obj, int pids[]) {
     XImage *image;
     Pixmap pixmap;
     
-    sem_init(&sem_th, 1, 10);
+    // semaphores initialization
+    //sem_init(&sem_th, 1, 10);
+    sem_unlink("/transmitt");
+
+    sem_th = sem_open("/transmitt", IPC_CREAT, 0666, 1);
+    if (sem_th == NULL) {
+        perror("sem_open()");
+    }
+
     // signal register area to receive signal from child processes.
     struct sigaction sig = { 0 };
     sig.sa_handler = &transmitter_handler;
@@ -51,25 +59,23 @@ int transmitter(Object obj, int pids[]) {
     printf("Condition BEFORE loop: %d\n", WAIT_CON);
     // waiting for the threader signal to break out of this waiting loop.
     while (1) {
-        // sleep(1);
-        if (WAIT_CON < 10 && WAIT_CON > 0) {
-            // printf("Condition IN loop: %d\n", WAIT_CON);
-            image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, shmem_2, obj.winattr->width, obj.winattr->height, 32, 0);
-            pixmap = XCreatePixmap(obj.displ, obj.win, obj.winattr->width, obj.winattr->height, obj.winattr->depth);
-            XPutImage(obj.displ, pixmap, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
-            XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
-        } else if (WAIT_CON == 10) {
-            XFree(image);
-            // printf("Condition IS 10 IN loop: %d\n", WAIT_CON);
+        if (WAIT_CON == 10) { 
             WAIT_CON = 0;
+            sem_post(sem_th);
             break;
         }
     }
     printf("Condition AFTER loop: %d\n", WAIT_CON);
 
+    image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, shmem_2, obj.winattr->width, obj.winattr->height, 32, 0);
+    pixmap = XCreatePixmap(obj.displ, obj.win, obj.winattr->width, obj.winattr->height, obj.winattr->depth);
+    XPutImage(obj.displ, pixmap, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
+    XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
+    XFree(image);
+
     // closing the semaphore which used in main2.c because we can't close it there.
     sem_close(&sem);
-    sem_close(&sem_th);
+    sem_close(sem_th);
     
     shmdt(&shmid_2);
     
@@ -77,8 +83,7 @@ int transmitter(Object obj, int pids[]) {
 }
 
 void transmitter_handler(int sig) {
-    sem_wait(&sem_th);
+    sem_wait(sem_th);
     WAIT_CON++;
-    sem_post(&sem_th);
 }
 
