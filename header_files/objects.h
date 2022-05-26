@@ -7,7 +7,6 @@ typedef struct {
     Display *displ;
     Window win;
     GC gc;
-    XGCValues values;
     XWindowAttributes *winattr;
     char *image_data;
     int max_iter;

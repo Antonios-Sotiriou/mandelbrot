@@ -1,6 +1,7 @@
 // general headers
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 // multiprocessing includes
 #include <unistd.h>
@@ -20,6 +21,7 @@
 // object specific headers
 #include "header_files/locale.h"
 #include "header_files/objects.h"
+#include "header_files/global_vars.h"
 #include "header_files/transmitter.h"
 
 // initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
@@ -46,21 +48,14 @@ int board(int pids[]) {
     KNOT knot, *shknot;
     key_t key = ftok("./knot_key", 9988);
     int shknotid = shmget(key, sizeof(KNOT), 0666);
-    shknot = shmat(shknotid, NULL, 0);
-
-    if (shknot == NULL) {
-        perror("shmat()");
-        return 1;
+    if (shknotid == -1) {
+        perror("Board - shmget()");
+        return EXIT_FAILURE;
     }
-
-    char *shmem_2;
-    key_t key_2 = 9998;
-    int shmid_2 = shmget(key_2, sizeof(char) * 800 * 800 * 4, 0666);
-    shmem_2 = shmat(shmid_2, NULL, 0);
-
-    if (shmem_2 == NULL) {
-        perror("shmat()");
-        return 1;
+    shknot = shmat(shknotid, NULL, 0);
+    if (shknot == NULL) {
+        perror("Board - shmat()");
+        return EXIT_FAILURE;
     }
 
     Display *displ;
@@ -70,16 +65,24 @@ int board(int pids[]) {
     XEvent event;
     Object obj;
 
-    // Global window constants.
-    obj.winattr = &winattr;
-    obj.winattr->width = 800;
-    obj.winattr->height = 800;
-
+    // shared memory
+    char *shmem_2;
+    key_t key_2 = 9998;
+    int shmid_2 = shmget(key_2, sizeof(char) * WIDTH * HEIGHT * 4, 0666);
+    if (shmid_2 == -1) {
+        perror("Board - shmget()");
+        return EXIT_FAILURE;;
+    }
+    shmem_2 = shmat(shmid_2, NULL, 0);
+    if (shmem_2 == NULL) {
+        perror("Board - shmat()");
+        return EXIT_FAILURE;;
+    }
 
     displ = XOpenDisplay(NULL);
     if (displ == NULL) {
-        fprintf(stderr, "Failed to open Display.\n");
-        exit(1);
+        perror("Board - XOpenDisplay()");
+        return EXIT_FAILURE;;
     } else {
         obj.displ = displ;
     }
@@ -87,7 +90,7 @@ int board(int pids[]) {
     screen = DefaultScreen(displ);
 
     /*  Root main Window */
-    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, obj.winattr->width, obj.winattr->height, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
+    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
     XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask /*| PointerMotionMask*/);
     XMapWindow(displ, win);
     obj.win = win;
@@ -109,21 +112,21 @@ int board(int pids[]) {
     //XIMStyle xim_requested_style;
     xim = XOpenIM(displ, NULL, NULL, NULL);
     if (xim == NULL) {
-        fprintf(stderr, "Failed to open Input Method.\n");
-        exit(2);
+        perror("Board - XOpenIM()");
+        return EXIT_FAILURE;;
     }
     failed_arg = XGetIMValues(xim, XNQueryInputStyle, &styles, NULL);
     if (failed_arg != NULL) {
-        fprintf(stderr, "Failed to obtain input method's styles.\n");
-        exit(3);
+        perror("Board - XGetIMValues()");
+        return EXIT_FAILURE;;
     }
     // for (int i = 0; i < styles->count_styles; i++) {
     //     printf("Styles supported %lu.\n", styles->supported_styles[i]);
     // }
     xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, win, NULL);
     if (xic == NULL) {
-        fprintf(stderr, "Could not open xic.\n");
-        exit(4);
+        perror("Board - XreateIC()");
+        return EXIT_FAILURE;;
     }
     XSetICFocus(xic);
 
@@ -132,13 +135,12 @@ int board(int pids[]) {
     values.foreground = XWhitePixel(displ, screen);
     values.background = XBlackPixel(displ, screen);
     GC gc = XCreateGC(displ, win, GCForeground | GCBackground, &values);
-
     obj.gc = gc;
-    obj.values = values;
-    obj.max_iter = 1000;
-    obj.horiz = 2.00;
-    obj.vert = 2.00;
-    obj.zoom = 4.00;
+    
+    obj.max_iter = ITERATIONS;
+    obj.horiz = HORIZONTAL;
+    obj.vert = VERTICAL;
+    obj.zoom = ZOOM;
     obj.init_x = 0;
     obj.init_y = 0;
 
@@ -157,14 +159,14 @@ int board(int pids[]) {
                         XFreeGC(displ, gc);
                     }
                     XCloseDisplay(displ);
-                    for (int i = 0; i < 10; i++) {
-                        kill(pids[i], SIGKILL); ////////////////////////////////////////////////////   
+                    for (int i = 0; i < PROC_NUM; i++) {
+                        kill(pids[i], SIGKILL);
                     }
-                    shmdt(&shknotid);
-                    shmdt(&shmid_2);
+                    shmdt(shknot);
+                    shmdt(shmem_2);
                     shmctl(shknotid, IPC_RMID, 0);
                     shmctl(shmid_2, IPC_RMID, 0);
-                    return 0;
+                    return EXIT_SUCCESS;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
                 /* Get window attributes */
@@ -178,8 +180,6 @@ int board(int pids[]) {
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
-                // shmdt(&shknotid);
-                // shmctl(shknotid, IPC_RMID, 0);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
@@ -202,8 +202,6 @@ int board(int pids[]) {
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
-                // shmdt(&shknotid);
-                // shmctl(shknotid, IPC_RMID, 0);
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
                 KeySym keysym = 0;
@@ -233,14 +231,10 @@ int board(int pids[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
+                *shknot = init_knot(&knot, obj);
                 transmitter(obj, pids);
-            } else {
-                //printf("Main Window Event.\n");
-                //printf("Event Type: %d\n", event.type);
             }
         }
     }
-
-    return 0;
 }
 

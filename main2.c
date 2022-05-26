@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 // multiprocessing includes
 #include <unistd.h>
 #include <semaphore.h>
+/* semaphore specific includes */
+#include <fcntl.h>
+#include <sys/stat.h>
 
 // signal
 #include <signal.h>
@@ -12,92 +16,106 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-// Time included for testing execution time
-#include <time.h>
-
 #include "header_files/objects.h"
+#include "header_files/global_vars.h"
 #include "header_files/threader.h"
-#include "header_files/sem.h"
-#include "header_files/sem_th.h"
+#include "header_files/mainsem.h"
 
+// this global variable is used only from this file and only from main function.
 int LOOP_CON = 0;
 
 void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
-    sem_init(&sem, 1, 10);
+    // semaphore initialization
+    if (sem_unlink("/mainsem") == -1){
+        if (errno != ENOENT) {
+            perror("Main2 - sem_unlink()");
+            return 1;
+        }
+    }
+    mainsem = sem_open("/mainsem", O_CREAT, 0666, PROC_NUM);
+    if (mainsem == SEM_FAILED) {
+        perror("Main2 - sem_open()");
+        return 1;
+    }
 
     struct sigaction sig = { 0 };
     sig.sa_handler = &signal_handler;
     int sig_val = sigaction(SIGUSR1, &sig, NULL);
+    if (sig_val == -1) {
+        perror("Main2 - sigaction()");
+        return 1;
+    }
 
     KNOT knot, *shmem;
     key_t key = ftok("./knot_key", 9988);
     int shmid = shmget(key, sizeof(KNOT), 0666);
+    if (shmid == -1) {
+        perror("Main2 - shmget()");
+        return 1;
+    }
     shmem = shmat(shmid, NULL, 0);
+    if (shmem == NULL) {
+        perror("Main2 - shmat()");
+        return 1;
+    }
     
     while (!sig_val) {
-        sem_wait(&sem);
+
+        if (sem_wait(mainsem) == -1) {
+            if (errno != EINTR) {
+                perror("Main2 - sem_wait()");
+                return 1;
+            }
+        }
         if (LOOP_CON) {
 
             knot = *shmem;
+            knot.step_x = 0;
 
             if (strcmp(argv[0], "process_1") == 0) {
-                // printf("Process_1 ##################################################: %s\n", argv[0]);
                 knot.step_counter = 0;
-                knot.step_x = 0;
                 knot.step_y = 0;
             } else if (strcmp(argv[0], "process_2") == 0) {
-                // printf("Process_2 ##########: %s\n", argv[0]);
-                knot.step_counter = (((knot.width * knot.height) / 10) * 4);
-                knot.step_x = 0;
-                knot.step_y = knot.height / 10;
+                knot.step_counter = (((knot.width * knot.height) / PROC_NUM) * 4);
+                knot.step_y = knot.height / PROC_NUM;
             } else if (strcmp(argv[0], "process_3") == 0) {
-                // printf("Process_3 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 2) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 2;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 2) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 2;
             } else if (strcmp(argv[0], "process_4") == 0) {
-                // printf("Process_4 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 3) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 3;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 3) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 3;
             } else if (strcmp(argv[0], "process_5") == 0) {
-                // printf("Process_5 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 4) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 4;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 4) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 4;
             } else if (strcmp(argv[0], "process_6") == 0) {
-                // printf("Process_6 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 5) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 5;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 5) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 5;
             } else if (strcmp(argv[0], "process_7") == 0) {
-                // printf("Process_7 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 6) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 6;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 6) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 6;
             } else if (strcmp(argv[0], "process_8") == 0) {
-                // printf("Process_8 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 7) *4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 7;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 7) *4);
+                knot.step_y = (knot.height / PROC_NUM) * 7;
             } else if (strcmp(argv[0], "process_9") == 0) {
-                // printf("Process_9 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 8) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 8;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 8) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 8;
             } else if (strcmp(argv[0], "process_10") == 0) {
-                // printf("Process_10 ##########: %s\n", argv[0]);
-                knot.step_counter = ((((knot.width * knot.height) / 10) * 9) * 4);
-                knot.step_x = 0;
-                knot.step_y = (knot.height / 10) * 9;
+                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 9) * 4);
+                knot.step_y = (knot.height / PROC_NUM) * 9;
             }
 
-            threader(knot);
+            if(threader(knot) != 0) {
+                perror("Main2.c - threader()");
+                return 1;
+            }
             LOOP_CON = 0;
-            sem_post(&sem);
+            if (sem_post(mainsem) == -1) {
+                perror("Main2 - sem_post()");
+                return 1;
+            }
         }
     }
 
