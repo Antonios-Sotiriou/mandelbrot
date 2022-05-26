@@ -1,7 +1,7 @@
 #ifndef SEM_H
 #define SEM_H
 
-sem_t sem;
+sem_t *mainsem;
 
 #endif /* SEM_H */
 

@@ -3,9 +3,6 @@
 #include "header_files/palette.h"
 #include "header_files/objects.h"
 
-// headers to be deleted
-#include <stdio.h>
-
 void painter(const KNOT knot, char *image_data) {
 
     double a = (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
@@ -29,13 +26,13 @@ void painter(const KNOT knot, char *image_data) {
     if (n < knot.max_iter) {
         image_data[knot.counter] =  n * n;
         image_data[knot.counter + 1] = n * 2;
-        image_data[knot.counter + 2] = 0;
-        image_data[knot.counter + 3] = 0;
+        image_data[knot.counter + 2] = 1;
     } else {
-        image_data[knot.counter] =  0;
-        image_data[knot.counter + 1] = 0;
-        image_data[knot.counter + 2] = 0;
-        image_data[knot.counter + 3] = 0; 
+        if (image_data[knot.counter] != 0x00 || image_data[knot.counter + 1] != 0x00 || image_data[knot.counter + 2] != 0x00) {
+            image_data[knot.counter] =  0x00;
+            image_data[knot.counter + 1] = 0x00;
+            image_data[knot.counter + 2] = 0x00;
+        }
     }
 }
 

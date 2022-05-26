@@ -8,11 +8,11 @@
 // shared memory
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <semaphore.h>
 
 // object specific headers
 #include "header_files/locale.h"
 #include "header_files/objects.h"
+#include "header_files/global_vars.h"
 #include "header_files/board.h"
 
 int main(int argc, char *argv[]) {
@@ -23,27 +23,33 @@ int main(int argc, char *argv[]) {
     KNOT *shknot;
     key_t key = ftok("./knot_key", 9988);
     int shknotid = shmget(key, sizeof(KNOT), 0666 | IPC_CREAT);
+    if (shknotid == -1) {
+        perror("Main - shmget()");
+        return 1;
+    }
     shknot = shmat(shknotid, NULL, 0);
-
     if (shknot == NULL) {
-        perror("shmat()");
+        perror("Main - shmat()");
         return 1;
     }
 
     // image data pointer
     char *shmem_2;
-    key_t key_2 = 9998;
-    int shmid_2 = shmget(key_2, sizeof(char) * 800 * 800 * 4, 0666 | IPC_CREAT);
+    key_t key_2 = 9998;                        //  The calculations here are not dynamic.
+    int shmid_2 = shmget(key_2, sizeof(char) * WIDTH * HEIGHT * 4, 0666 | IPC_CREAT);
+    if (shmid_2 == -1) {
+        perror("Main - shmget()");
+        return 1;
+    }
     shmem_2 = shmat(shmid_2, NULL, 0);
-
     if (shmem_2 == NULL) {
-        perror("shmat()");
+        perror("Main - shmat()");
         return 1;
     }
 
-    int pids[10];
+    int pids[PROC_NUM];
     char *process_num[10] = { "process_1", "process_2", "process_3", "process_4", "process_5", "process_6", "process_7", "process_8", "process_9", "process_10" };
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < PROC_NUM; i++) {
         pids[i] = fork();
         if (pids[i] == -1) {
             perror("fork()");
