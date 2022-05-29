@@ -16,16 +16,16 @@
 
 int threader(KNOT knot) {
 
-    char *shmem_2;
-    key_t key_2 = 9998;
-    int shmid_2 = shmget(key_2, knot.width * knot.height * 4, 0666);
-    if (shmid_2 == -1) {
-        perror("Threader - shmget()");
+    char *sh_image;
+    key_t image_key = ftok("./keys/image_key.txt", 8899);
+    int shimage_id = shmget(image_key, knot.width * knot.height * 4, 0666);
+    if (shimage_id == -1) {
+        perror("Threader - shimage_id shmget()");
         return 1;
     }
-    shmem_2 = shmat(shmid_2, NULL, 0);
-    if (shmem_2 == NULL) {
-        perror("Threader - shmat()");
+    sh_image = shmat(shimage_id, NULL, 0);
+    if (sh_image == NULL) {
+        perror("Threader - sh_image shmat()");
         return 1;
     }
 
@@ -43,14 +43,14 @@ int threader(KNOT knot) {
         knot.x = x;
         knot.y = y;
         knot.counter = counter;
-        painter(knot, shmem_2);
+        painter(knot, sh_image);
         counter += 4;
         x++;
     }
 
     kill(getppid(), SIGRTMIN);
-    if(shmdt(shmem_2) == -1) {
-        perror("threader - shmdt()");
+    if(shmdt(sh_image) == -1) {
+        perror("Threader - sh_image shmdt()");
         return 1;
     }
     return 0;

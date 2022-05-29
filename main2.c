@@ -49,16 +49,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    KNOT knot, *shmem;
-    key_t key = ftok("./knot_key", 9988);
-    int shmid = shmget(key, sizeof(KNOT), 0666);
-    if (shmid == -1) {
-        perror("Main2 - shmget()");
-        return 1;
-    }
-    shmem = shmat(shmid, NULL, 0);
-    if (shmem == NULL) {
-        perror("Main2 - shmat()");
+    KNOT knot, *sh_knot;
+    key_t knot_key = ftok("./keys/knot_key.txt", 9988);
+    int shknot_id = shmget(knot_key, sizeof(KNOT), 0666);
+    if (shknot_id == -1) {
+        perror("Main2 - shknot_id shmget()");
         return 1;
     }
     
@@ -72,7 +67,13 @@ int main(int argc, char *argv[]) {
         }
         if (LOOP_CON) {
 
-            knot = *shmem;
+            sh_knot = shmat(shknot_id, NULL, 0);
+            if (sh_knot == NULL) {
+                perror("Main2 - sh_knot shmat()");
+                return 1;
+            }
+
+            knot = *sh_knot;
             knot.step_x = 0;
 
             if (strcmp(argv[0], "process_1") == 0) {
@@ -114,6 +115,10 @@ int main(int argc, char *argv[]) {
             LOOP_CON = 0;
             if (sem_post(mainsem) == -1) {
                 perror("Main2 - sem_post()");
+                return 1;
+            }
+            if(shmdt(sh_knot) == -1) {
+                perror("Main2 - sh_knot shmdt()");
                 return 1;
             }
         }

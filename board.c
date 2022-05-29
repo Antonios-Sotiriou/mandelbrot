@@ -25,7 +25,7 @@
 #include "header_files/transmitter.h"
 
 // initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
-KNOT init_knot(KNOT *knot, const Object obj) {
+void init_knot(KNOT *knot, const Object obj) {
 
     knot->width = obj.winattr->width;
     knot->height = obj.winattr->height;
@@ -37,25 +37,31 @@ KNOT init_knot(KNOT *knot, const Object obj) {
     knot->y = obj.y;
     knot->init_x = obj.init_x;
     knot->init_y = obj.init_y;
-
-    return *knot;
 }
 
 // General initialization and event handling.
 int board(int pids[]) {
 
+    // shared memory
     // object to transfer between processes the integer variables for each process calculations.
-    KNOT knot, *shknot;
-    key_t key = ftok("./knot_key", 9988);
-    int shknotid = shmget(key, sizeof(KNOT), 0666);
-    if (shknotid == -1) {
-        perror("Board - shmget()");
+    KNOT *sh_knot;
+    key_t knot_key = ftok("./keys/knot_key.txt", 9988);
+    int shknot_id = shmget(knot_key, sizeof(KNOT), 0666);
+    if (shknot_id == -1) {
+        perror("Board - shknot_id shmget()");
         return EXIT_FAILURE;
     }
-    shknot = shmat(shknotid, NULL, 0);
-    if (shknot == NULL) {
-        perror("Board - shmat()");
+    sh_knot = shmat(shknot_id, NULL, 0);
+    if (sh_knot == NULL) {
+        perror("Board - sh_knot shmat()");
         return EXIT_FAILURE;
+    }
+    // We attaching this shared memory at this point only to close it when the user closes the window.
+    key_t image_key = ftok("./keys/image_key.txt", 8899);
+    int shimage_id = shmget(image_key, sizeof(char) * WIDTH * HEIGHT * 4, 0666);
+    if (shimage_id == -1) {
+        perror("Board - shimage_id shmget()");
+        return EXIT_FAILURE;;
     }
 
     Display *displ;
@@ -64,20 +70,6 @@ int board(int pids[]) {
     XWindowAttributes winattr;
     XEvent event;
     Object obj;
-
-    // shared memory
-    char *shmem_2;
-    key_t key_2 = 9998;
-    int shmid_2 = shmget(key_2, sizeof(char) * WIDTH * HEIGHT * 4, 0666);
-    if (shmid_2 == -1) {
-        perror("Board - shmget()");
-        return EXIT_FAILURE;;
-    }
-    shmem_2 = shmat(shmid_2, NULL, 0);
-    if (shmem_2 == NULL) {
-        perror("Board - shmat()");
-        return EXIT_FAILURE;;
-    }
 
     displ = XOpenDisplay(NULL);
     if (displ == NULL) {
@@ -162,10 +154,10 @@ int board(int pids[]) {
                     for (int i = 0; i < PROC_NUM; i++) {
                         kill(pids[i], SIGKILL);
                     }
-                    shmdt(shknot);
-                    shmdt(shmem_2);
-                    shmctl(shknotid, IPC_RMID, 0);
-                    shmctl(shmid_2, IPC_RMID, 0);
+                    shmdt(sh_knot);
+                    // shmdt(shmem_2);
+                    shmctl(shknot_id, IPC_RMID, 0);
+                    shmctl(shimage_id, IPC_RMID, 0);
                     return EXIT_SUCCESS;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
@@ -173,9 +165,14 @@ int board(int pids[]) {
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
                 // initialize knot object and set shared memory vaues equal to knot.
-                *shknot = init_knot(&knot, obj);
+                init_knot(sh_knot, obj);
                 // time count...
                 begin = clock();
+                shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
+                if (shimage_id == -1) {
+                    perror("Board - Expose Event-shimage_id shmget()");
+                    return EXIT_FAILURE;;
+                }
                 transmitter(obj, pids);
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -195,7 +192,7 @@ int board(int pids[]) {
                 } else if (event.xkey.keycode == 3) {
                     obj.zoom /= 0.50;
                 }
-                *shknot = init_knot(&knot, obj);
+                init_knot(sh_knot, obj);
                 // time count...
                 begin = clock();
                 transmitter(obj, pids);
@@ -231,7 +228,7 @@ int board(int pids[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
-                *shknot = init_knot(&knot, obj);
+                init_knot(sh_knot, obj);
                 transmitter(obj, pids);
             }
         }

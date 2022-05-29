@@ -31,7 +31,6 @@ int transmitter(Object obj, int pids[]) {
     Pixmap pixmap;
     
     // semaphores initialization
-    //sem_init(&transem, 1, 10);
     if (sem_unlink("/transem") == -1){
         if (errno != ENOENT) {
             perror("Transmitter - sem_unlink()");
@@ -40,7 +39,7 @@ int transmitter(Object obj, int pids[]) {
     }
     transem = sem_open("/transem", O_CREAT, 0666, 10);
     if (transem == SEM_FAILED) {
-        perror("transmitter - sem_open()");
+        perror("Transmitter - sem_open()");
         return 1;
     }
 
@@ -53,16 +52,16 @@ int transmitter(Object obj, int pids[]) {
     }
 
     // image data pointer
-    char *shmem_2;
-    key_t key_2 = 9998;
-    int shmid_2 = shmget(key_2, obj.winattr->width * obj.winattr->height * 4, 0666);
-    if (shmid_2 == -1) {
-        perror("Transmitter - shmget()");
+    char *sh_image;
+    key_t image_key = ftok("./keys/image_key.txt", 8899);
+    int shimage_id = shmget(image_key, obj.winattr->width * obj.winattr->height * 4, 0666);
+    if (shimage_id == -1) {
+        perror("Transmitter - shimage_id shmget()");
         return 1;
     }
-    shmem_2 = shmat(shmid_2, NULL, 0);
-    if (shmem_2 == NULL) {
-        perror("Transmitter - shmat()");
+    sh_image = shmat(shimage_id, NULL, 0);
+    if (sh_image == NULL) {
+        perror("Transmitter - sh_image shmat()");
         return 1;
     }
 
@@ -79,7 +78,7 @@ int transmitter(Object obj, int pids[]) {
         }
     }
 
-    image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, shmem_2, obj.winattr->width, obj.winattr->height, 32, 0);
+    image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, sh_image, obj.winattr->width, obj.winattr->height, 32, 0);
     pixmap = XCreatePixmap(obj.displ, obj.win, obj.winattr->width, obj.winattr->height, obj.winattr->depth);
     XPutImage(obj.displ, pixmap, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
     XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
@@ -87,12 +86,12 @@ int transmitter(Object obj, int pids[]) {
 
     // closing the semaphore which used in main2.c because we can't close it there.
     if (sem_close(transem) == -1) {
-        perror("transmitter - sem_close()");
+        perror("Transmitter - sem_close()");
         return 1;
     }
     
-    if(shmdt(shmem_2) == -1) {
-        perror("transmitter - shmdt()");
+    if(shmdt(sh_image) == -1) {
+        perror("Transmitter - sh_image shmdt()");
         return 1;
     }
     
