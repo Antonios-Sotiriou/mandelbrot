@@ -19,31 +19,26 @@ int main(int argc, char *argv[]) {
     
     locale_init();
 
-    // object to transfer between processes the integer variables for each process calculations.
-    KNOT *shknot;
-    key_t key = ftok("./knot_key", 9988);
-    int shknotid = shmget(key, sizeof(KNOT), 0666 | IPC_CREAT);
-    if (shknotid == -1) {
-        perror("Main - shmget()");
+    // object to transfer between processes which contains the integer variables for each process calculations.
+    key_t knot_key = ftok("./keys/knot_key.txt", 9988);
+    if (knot_key == -1) {
+        perror("Main - knot_key ftok()");
         return 1;
     }
-    shknot = shmat(shknotid, NULL, 0);
-    if (shknot == NULL) {
-        perror("Main - shmat()");
+    int shknot_id = shmget(knot_key, sizeof(KNOT), 0666 | IPC_CREAT);
+    if (shknot_id == -1) {
+        perror("Main - shknot_id shmget()");
         return 1;
     }
-
-    // image data pointer
-    char *shmem_2;
-    key_t key_2 = 9998;                        //  The calculations here are not dynamic.
-    int shmid_2 = shmget(key_2, sizeof(char) * WIDTH * HEIGHT * 4, 0666 | IPC_CREAT);
-    if (shmid_2 == -1) {
-        perror("Main - shmget()");
+    // The shared image data to be available through all the child processes
+    key_t image_key = ftok("./keys/image_key.txt", 8899);
+    if (image_key == -1) {
+        perror("Main - image_key ftok()");
         return 1;
     }
-    shmem_2 = shmat(shmid_2, NULL, 0);
-    if (shmem_2 == NULL) {
-        perror("Main - shmat()");
+    int shimage_id = shmget(image_key, sizeof(char) * WIDTH * HEIGHT * 4, 0666 | IPC_CREAT); //  The calculations here are not dynamic.
+    if (shimage_id == -1) {
+        perror("Main - shimage_id  shmget()");
         return 1;
     }
 
