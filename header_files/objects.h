@@ -22,8 +22,8 @@ typedef struct {
 
 typedef struct {
     int proc_num;
-    int width;
-    int height;
+    unsigned int width;
+    unsigned int height;
     int max_iter;
     int counter;
     int x;

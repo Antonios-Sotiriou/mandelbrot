@@ -25,19 +25,7 @@
 #include "header_files/transmitter.h"
 
 // initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
-void init_knot(KNOT *knot, const Object obj) {
-
-    knot->width = obj.winattr->width;
-    knot->height = obj.winattr->height;
-    knot->horiz = obj.horiz;
-    knot->vert = obj.vert;
-    knot->max_iter = obj.max_iter;
-    knot->zoom = obj.zoom;
-    knot->x = obj.x;
-    knot->y = obj.y;
-    knot->init_x = obj.init_x;
-    knot->init_y = obj.init_y;
-}
+void init_knot(KNOT *knot, const Object obj);
 
 // General initialization and event handling.
 int board(int pids[]) {
@@ -83,7 +71,7 @@ int board(int pids[]) {
 
     /*  Root main Window */
     win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
-    XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask /*| PointerMotionMask*/);
+    XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask /*| PointerMotionMask*/);
     XMapWindow(displ, win);
     obj.win = win;
 
@@ -161,18 +149,21 @@ int board(int pids[]) {
                     return EXIT_SUCCESS;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
+                if (event.xresizerequest.window == win) {
+                    printf("Window resized\n");
+                }
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
-                // initialize knot object and set shared memory vaues equal to knot.
-                init_knot(sh_knot, obj);
                 // time count...
                 begin = clock();
-                shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
-                if (shimage_id == -1) {
-                    perror("Board - Expose Event-shimage_id shmget()");
-                    return EXIT_FAILURE;;
-                }
+                // shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
+                // if (shimage_id == -1) {
+                //     perror("Board - Expose Event-shimage_id shmget()");
+                //     return EXIT_FAILURE;;
+                // }
+                // initialize knot object and set shared memory vaules equal to knot.
+                init_knot(sh_knot, obj);
                 transmitter(obj, pids);
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -233,5 +224,19 @@ int board(int pids[]) {
             }
         }
     }
+}
+
+void init_knot(KNOT *knot, const Object obj) {
+
+    knot->width = obj.winattr->width;
+    knot->height = obj.winattr->height;
+    knot->horiz = obj.horiz;
+    knot->vert = obj.vert;
+    knot->max_iter = obj.max_iter;
+    knot->zoom = obj.zoom;
+    knot->x = obj.x;
+    knot->y = obj.y;
+    knot->init_x = obj.init_x;
+    knot->init_y = obj.init_y;
 }
 
