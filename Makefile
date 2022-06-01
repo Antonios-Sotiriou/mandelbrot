@@ -4,7 +4,7 @@ CC = gcc
 CFLAGS = -Wall -Werror -g
 OBJ = plot
 RM = rm
-LINKS = -lX11 -pthread
+LINKS = -lX11 -pthread -lm
 
 install:
 	./install.sh;

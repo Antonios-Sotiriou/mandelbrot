@@ -30,17 +30,6 @@ int main(int argc, char *argv[]) {
         perror("Main - shknot_id shmget()");
         return 1;
     }
-    // The shared image data to be available through all the child processes
-    key_t image_key = ftok("./keys/image_key.txt", 8899);
-    if (image_key == -1) {
-        perror("Main - image_key ftok()");
-        return 1;
-    }
-    int shimage_id = shmget(image_key, sizeof(char) * WIDTH * HEIGHT * 4, 0666 | IPC_CREAT); //  The calculations here are not dynamic.
-    if (shimage_id == -1) {
-        perror("Main - shimage_id  shmget()");
-        return 1;
-    }
 
     int pids[PROC_NUM];
     char *process_num[10] = { "process_1", "process_2", "process_3", "process_4", "process_5", "process_6", "process_7", "process_8", "process_9", "process_10" };
