@@ -44,13 +44,15 @@ int board(int pids[]) {
         perror("Board - sh_knot shmat()");
         return EXIT_FAILURE;
     }
-    // We attaching this shared memory at this point only to close it when the user closes the window.
+
+    // The shared image data key.
     key_t image_key = ftok("./keys/image_key.txt", 8899);
-    int shimage_id = shmget(image_key, sizeof(char) * WIDTH * HEIGHT * 4, 0666);
-    if (shimage_id == -1) {
-        perror("Board - shimage_id shmget()");
-        return EXIT_FAILURE;;
+    if (image_key == -1) {
+        perror("Main - image_key ftok()");
+        return 1;
     }
+    // The shared image data memory id.He define it here so it is available in the event loop further down.
+    int shimage_id;
 
     Display *displ;
     int screen;
@@ -143,7 +145,6 @@ int board(int pids[]) {
                         kill(pids[i], SIGKILL);
                     }
                     shmdt(sh_knot);
-                    // shmdt(shmem_2);
                     shmctl(shknot_id, IPC_RMID, 0);
                     shmctl(shimage_id, IPC_RMID, 0);
                     return EXIT_SUCCESS;
@@ -151,17 +152,20 @@ int board(int pids[]) {
             } else if (event.type == Expose && event.xclient.window == win) {
                 if (event.xresizerequest.window == win) {
                     printf("Window resized\n");
+                    shmctl(shimage_id, IPC_RMID, 0);
+                    // Here i must find a way to discard the resizing event until the last one.
                 }
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
                 // time count...
                 begin = clock();
-                // shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
-                // if (shimage_id == -1) {
-                //     perror("Board - Expose Event-shimage_id shmget()");
-                //     return EXIT_FAILURE;;
-                // }
+                // At expose event we create the shared image data memory.We do it here because we need to recreate it if user resizes the window.
+                shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
+                if (shimage_id == -1) {
+                    perror("Board - Expose Event-shimage_id shmget()");
+                    return EXIT_FAILURE;;
+                }
                 // initialize knot object and set shared memory vaules equal to knot.
                 init_knot(sh_knot, obj);
                 transmitter(obj, pids);
