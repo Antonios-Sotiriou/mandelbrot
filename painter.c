@@ -23,11 +23,12 @@ void painter(const KNOT knot, char *image_data) {
         }
         n++;
     }
-    
-    if (n < knot.max_iter) {
-        image_data[knot.counter] =  n * 2;
-        image_data[knot.counter + 1] = n;
-        image_data[knot.counter + 2] =  n * 3;
+    if (n < knot.max_iter && n >= 255)
+        n = n / 100;
+    if (n < knot.max_iter && n < 255) {
+        image_data[knot.counter] =  n + 10;
+        image_data[knot.counter + 1] = n + n;
+        image_data[knot.counter + 2] =  n * 20;
     } else {
         if (image_data[knot.counter] != 0x00 || image_data[knot.counter + 1] != 0x00 || image_data[knot.counter + 2] != 0x00) {
             image_data[knot.counter] =  0x00;
