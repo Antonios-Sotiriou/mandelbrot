@@ -1,19 +1,18 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <X11/Xlib.h>
+#include <math.h>
 
 #include "header_files/palette.h"
 #include "header_files/objects.h"
 
-void painter(Object obj) {
+void painter(const KNOT knot, char *image_data) {
 
-    double a = (obj.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom) + obj.init_x;
-    double b = (obj.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom) + obj.init_y;
+    double a = (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
+    double b = (knot.y - (knot.height / knot.vert)) / (knot.height / knot.zoom) + knot.init_y;
     double curr_a = a;
     double curr_b = b;
 
     int n = 0;
-    while (n < obj.max_iter) {
+    while (n < knot.max_iter) {
         double iter_a = (a * a) - (b * b);
         double iter_b = 2 * a * b;
         a = iter_a + curr_a;
@@ -24,15 +23,18 @@ void painter(Object obj) {
         }
         n++;
     }
-
-    if (n < obj.max_iter) {
-        obj.image_data[obj.counter] =  n + n;
-        obj.image_data[obj.counter + 1] = n * 2;
-        obj.image_data[obj.counter + 2] = 0;
-    } else if (n == obj.max_iter) {
-        obj.image_data[obj.counter] = 0;
-        obj.image_data[obj.counter + 1] = 0;
-        obj.image_data[obj.counter + 2] = 0;
+    if (n < knot.max_iter && n >= 255)
+        n = n / 100;
+    if (n < knot.max_iter && n < 255) {
+        image_data[knot.counter] =  n + 10;
+        image_data[knot.counter + 1] = n + n;
+        image_data[knot.counter + 2] =  n * 20;
+    } else {
+        if (image_data[knot.counter] != 0x00 || image_data[knot.counter + 1] != 0x00 || image_data[knot.counter + 2] != 0x00) {
+            image_data[knot.counter] =  0x00;
+            image_data[knot.counter + 1] = 0x00;
+            image_data[knot.counter + 2] = 0x00;
+        }
     }
 }
 

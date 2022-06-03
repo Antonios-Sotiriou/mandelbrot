@@ -1,17 +1,58 @@
+// general headers
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <X11/Xlib.h>
-#include <X11/Xlocale.h>
+#include <errno.h>
+
+// multiprocessing includes
+#include <unistd.h>
+#include <sys/wait.h>
+
+// shared memory
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <semaphore.h>
+
+// signal
+#include <signal.h>
 
 // Time included for testing execution time
 #include <time.h>
 
+// object specific headers
+#include "header_files/locale.h"
 #include "header_files/objects.h"
-#include "header_files/palette.h"
-#include "header_files/iterator.h"
+#include "header_files/global_vars.h"
+#include "header_files/transmitter.h"
 
-int main(int argc, char *argv[]) {
+// initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
+void init_knot(KNOT *knot, const Object obj);
+
+// General initialization and event handling.
+int board(int pids[]) {
+
+    // shared memory
+    // object to transfer between processes the integer variables for each process calculations.
+    KNOT *sh_knot;
+    key_t knot_key = ftok("./keys/knot_key.txt", 9988);
+    int shknot_id = shmget(knot_key, sizeof(KNOT), 0666);
+    if (shknot_id == -1) {
+        perror("Board - shknot_id shmget()");
+        return EXIT_FAILURE;
+    }
+    sh_knot = shmat(shknot_id, NULL, 0);
+    if (sh_knot == NULL) {
+        perror("Board - sh_knot shmat()");
+        return EXIT_FAILURE;
+    }
+
+    // The shared image data key.
+    key_t image_key = ftok("./keys/image_key.txt", 8899);
+    if (image_key == -1) {
+        perror("Main - image_key ftok()");
+        return 1;
+    }
+    // The shared image data memory id.He define it here so it is available in the event loop further down.
+    int shimage_id;
 
     Display *displ;
     int screen;
@@ -20,39 +61,19 @@ int main(int argc, char *argv[]) {
     XEvent event;
     Object obj;
 
-    // Global window constants.
-    obj.winattr = &winattr;
-    obj.winattr->width = 800;
-    obj.winattr->height = 800;
-
-    // Locale optimisation.
-    if (setlocale(LC_ALL, "") == NULL) {
-        fprintf(stderr, "setlocale(LC_ALL, "") is NULL.\n");
-        exit(1);
-    }
-    if (!XSupportsLocale()) {
-        fprintf(stderr, "Locale is not supported.Exiting.\n");
-        exit(1);
-    }
-    if (XSetLocaleModifiers("") == NULL) {
-        fprintf(stderr, "XSetLocaleModifiers is NULL.\n");
-        exit(1);
-    }
-
     displ = XOpenDisplay(NULL);
     if (displ == NULL) {
-        fprintf(stderr, "Failed to open Display.\n");
-        exit(1);
+        perror("Board - XOpenDisplay()");
+        return EXIT_FAILURE;;
     } else {
         obj.displ = displ;
     }
 
     screen = DefaultScreen(displ);
-    printf("Default screen value: %d\n", screen);
 
     /*  Root main Window */
-    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, obj.winattr->width, obj.winattr->height, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
-    XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask /*| PointerMotionMask*/);
+    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
+    XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask /*| PointerMotionMask*/);
     XMapWindow(displ, win);
     obj.win = win;
 
@@ -73,21 +94,21 @@ int main(int argc, char *argv[]) {
     //XIMStyle xim_requested_style;
     xim = XOpenIM(displ, NULL, NULL, NULL);
     if (xim == NULL) {
-        fprintf(stderr, "Failed to open Input Method.\n");
-        exit(2);
+        perror("Board - XOpenIM()");
+        return EXIT_FAILURE;;
     }
     failed_arg = XGetIMValues(xim, XNQueryInputStyle, &styles, NULL);
     if (failed_arg != NULL) {
-        fprintf(stderr, "Failed to obtain input method's styles.\n");
-        exit(3);
+        perror("Board - XGetIMValues()");
+        return EXIT_FAILURE;;
     }
-    for (int i = 0; i < styles->count_styles; i++) {
-        printf("Styles supported %lu.\n", styles->supported_styles[i]);
-    }
+    // for (int i = 0; i < styles->count_styles; i++) {
+    //     printf("Styles supported %lu.\n", styles->supported_styles[i]);
+    // }
     xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, win, NULL);
     if (xic == NULL) {
-        fprintf(stderr, "Could not open xic.\n");
-        exit(4);
+        perror("Board - XreateIC()");
+        return EXIT_FAILURE;;
     }
     XSetICFocus(xic);
 
@@ -96,15 +117,18 @@ int main(int argc, char *argv[]) {
     values.foreground = XWhitePixel(displ, screen);
     values.background = XBlackPixel(displ, screen);
     GC gc = XCreateGC(displ, win, GCForeground | GCBackground, &values);
-
     obj.gc = gc;
-    obj.values = values;
-    obj.max_iter = 1000;
-    obj.horiz = 2.00;
-    obj.vert = 2.00;
-    obj.zoom = 4.00;
+    
+    obj.max_iter = ITERATIONS;
+    obj.horiz = HORIZONTAL;
+    obj.vert = VERTICAL;
+    obj.zoom = ZOOM;
     obj.init_x = 0;
     obj.init_y = 0;
+
+    clock_t begin;
+    clock_t end;
+    double exec_time;
 
     while (1) {
         while (XPending(displ) > 0) {
@@ -117,13 +141,37 @@ int main(int argc, char *argv[]) {
                         XFreeGC(displ, gc);
                     }
                     XCloseDisplay(displ);
-                    return 0;
+                    for (int i = 0; i < PROC_NUM; i++) {
+                        kill(pids[i], SIGKILL);
+                    }
+                    shmdt(sh_knot);
+                    shmctl(shknot_id, IPC_RMID, 0);
+                    shmctl(shimage_id, IPC_RMID, 0);
+                    return EXIT_SUCCESS;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
+                if (event.xresizerequest.window == win) {
+                    printf("Window resized\n");
+                    shmctl(shimage_id, IPC_RMID, 0);
+                    // Here i must find a way to discard the resizing event until the last one.
+                }
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
-                iterator(obj);
+                // time count...
+                begin = clock();
+                // At expose event we create the shared image data memory.We do it here because we need to recreate it if user resizes the window.
+                shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
+                if (shimage_id == -1) {
+                    perror("Board - Expose Event-shimage_id shmget()");
+                    return EXIT_FAILURE;;
+                }
+                // initialize knot object and set shared memory vaules equal to knot.
+                init_knot(sh_knot, obj);
+                transmitter(obj, pids);
+                end = clock();
+                exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
+                printf("Iterator Execution Time : %f\n", exec_time);
             } else if (event.type == ButtonPress && event.xclient.window == win) {
 
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
@@ -139,11 +187,12 @@ int main(int argc, char *argv[]) {
                 } else if (event.xkey.keycode == 3) {
                     obj.zoom /= 0.50;
                 }
+                init_knot(sh_knot, obj);
                 // time count...
-                clock_t begin = clock();
-                iterator(obj);
-                clock_t end = clock();
-                double exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
+                begin = clock();
+                transmitter(obj, pids);
+                end = clock();
+                exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);
             } else if (event.type == KeyPress && event.xclient.window == win) {
                 int count = 0;  
@@ -174,13 +223,24 @@ int main(int argc, char *argv[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
-                iterator(obj);
-            } else {
-                printf("Main Window Event.\n");
-                printf("Event Type: %d\n", event.type);
+                init_knot(sh_knot, obj);
+                transmitter(obj, pids);
             }
         }
     }
-    return 0;
+}
+
+void init_knot(KNOT *knot, const Object obj) {
+
+    knot->width = obj.winattr->width;
+    knot->height = obj.winattr->height;
+    knot->horiz = obj.horiz;
+    knot->vert = obj.vert;
+    knot->max_iter = obj.max_iter;
+    knot->zoom = obj.zoom;
+    knot->x = obj.x;
+    knot->y = obj.y;
+    knot->init_x = obj.init_x;
+    knot->init_y = obj.init_y;
 }
 
