@@ -57,7 +57,6 @@ int board(int pids[]) {
     Display *displ;
     int screen;
     Window win;
-    XWindowAttributes winattr;
     XEvent event;
     Object obj;
 
@@ -72,8 +71,10 @@ int board(int pids[]) {
     screen = DefaultScreen(displ);
 
     /*  Root main Window */
-    win = XCreateSimpleWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, XWhitePixel(displ, screen), XBlackPixel(displ, screen));
-    XSelectInput(displ, win, ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask /*| PointerMotionMask*/);
+    XWindowAttributes winattr;
+    XSetWindowAttributes win_attr;
+    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, 0, &win_attr);
+    XSelectInput(displ, win, SubstructureRedirectMask | ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask);
     XMapWindow(displ, win);
     obj.win = win;
 
