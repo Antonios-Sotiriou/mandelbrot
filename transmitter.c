@@ -83,6 +83,7 @@ int transmitter(Object obj, int pids[]) {
     XPutImage(obj.displ, pixmap, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
     XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
     XFree(image);
+    XFreePixmap(obj.displ, pixmap);
 
     // closing the semaphore which used in main2.c because we can't close it there.
     if (sem_close(transem) == -1) {
