@@ -1,7 +1,7 @@
-#ifndef LOCALE_H
-#define LOCALE_H
+#ifndef _LOCALE_H
+#define _LOCALE_H 1
 
-int locale_init();
+const int locale_init(void);
 
-#endif /* LOCALE_H */
+#endif /* _LOCALE_H */
 

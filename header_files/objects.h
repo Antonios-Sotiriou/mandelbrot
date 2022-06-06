@@ -1,5 +1,5 @@
-#ifndef OBJECTS_H
-#define OBJECTS_H
+#ifndef _OBJECTS_H
+#define _OBJECTS_H 1
 
 #include <X11/Xlib.h>
 
@@ -8,7 +8,7 @@ typedef struct {
     Window win;
     GC gc;
     XWindowAttributes *winattr;
-    char *image_data;
+    unsigned char *image_data;
     int max_iter;
     int counter;
     int x;
@@ -38,5 +38,5 @@ typedef struct {
     int step_y;
 } KNOT;
 
-#endif /* OBJECTS_H */
+#endif /* _OBJECTS_H */
 
