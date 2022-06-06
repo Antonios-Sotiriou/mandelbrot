@@ -1,13 +1,27 @@
-#include <stdlib.h>
-#include <math.h>
+// general headers
+#ifndef _STDLIB_H
+    #include <stdlib.h>
+#endif
 
-#include "header_files/palette.h"
-#include "header_files/objects.h"
+// Project specific headers
+#ifndef _PALETTE_H
+    #include "header_files/palette.h"
+#endif
+#ifndef _OBJECTS_H
+    #include "header_files/objects.h"
+#endif
+
+// Macro to help us with the computations
+#ifndef SCALES
+    #define SCALES 1
+    #define XSCALE (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
+    #define YSCALE (knot.y - (knot.height / knot.vert)) / (knot.height / knot.zoom) + knot.init_y;
+#endif
 
 void painter(const KNOT knot, char *image_data) {
 
-    double a = (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
-    double b = (knot.y - (knot.height / knot.vert)) / (knot.height / knot.zoom) + knot.init_y;
+    double a = XSCALE;
+    double b = YSCALE;
     double curr_a = a;
     double curr_b = b;
 
@@ -28,7 +42,7 @@ void painter(const KNOT knot, char *image_data) {
     if (n < knot.max_iter && n < 255) {
         image_data[knot.counter] =  n + 10;
         image_data[knot.counter + 1] = n + n;
-        image_data[knot.counter + 2] =  n * 20;
+        image_data[knot.counter + 2] =  n * 10;
     } else {
         if (image_data[knot.counter] != 0x00 || image_data[knot.counter + 1] != 0x00 || image_data[knot.counter + 2] != 0x00) {
             image_data[knot.counter] =  0x00;

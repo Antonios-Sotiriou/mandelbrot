@@ -1,5 +1,5 @@
-#ifndef GLOBAL_VARS_H
-#define GLOBAL_VARS_H
+#ifndef _GLOBAL_VARS_H
+#define _GLOBAL_VARS_H 1
 
 extern double XCONST;                 
 extern double YCONST;
@@ -11,4 +11,4 @@ static const double HORIZONTAL = 2.00;                 // Horizontal scale.
 static const double VERTICAL = 2.00;                   // Vetical scale.
 static const double ZOOM = 4.00;                       // Mandelbrot starting zoom.
 
-#endif /* GLOBAL_VARS_H */
+#endif /* _GLOBAL_VARS_H */

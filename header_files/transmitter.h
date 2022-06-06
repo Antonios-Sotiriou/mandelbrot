@@ -1,7 +1,7 @@
-#ifndef ITERATOR_H
-#define ITERATOR_H
+#ifndef _TRANSMITTER_H
+#define _TRANSMITTER_H 1
 
-int transmitter(Object obj, int pids[]);
+const int transmitter(const Object obj, const int pids[]);
 
-#endif /* ITERATOR_H */
+#endif /* _TRANSMITTER_H */
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 
 // multiprocessing includes
@@ -16,10 +17,13 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+#include "header_files/shmem.h"
 #include "header_files/objects.h"
 #include "header_files/global_vars.h"
 #include "header_files/threader.h"
 #include "header_files/mainsem.h"
+
+#define EMVADON (knot.width * knot.height)
 
 // this global variable is used only from this file and only from main function.
 int LOOP_CON = 0;
@@ -32,13 +36,13 @@ int main(int argc, char *argv[]) {
     if (sem_unlink("/mainsem") == -1){
         if (errno != ENOENT) {
             perror("Main2 - sem_unlink()");
-            return 1;
+            return EXIT_FAILURE;
         }
     }
     mainsem = sem_open("/mainsem", O_CREAT, 0666, PROC_NUM);
     if (mainsem == SEM_FAILED) {
         perror("Main2 - sem_open()");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     struct sigaction sig = { 0 };
@@ -46,32 +50,28 @@ int main(int argc, char *argv[]) {
     int sig_val = sigaction(SIGUSR1, &sig, NULL);
     if (sig_val == -1) {
         perror("Main2 - sigaction()");
-        return 1;
+        return EXIT_FAILURE;
     }
-
+    // Grab the shared memory to retrieve the knot was putted there by main.c and modified by board.c.
     KNOT knot, *sh_knot;
-    key_t knot_key = ftok("./keys/knot_key.txt", 9988);
-    int shknot_id = shmget(knot_key, sizeof(KNOT), 0666);
-    if (shknot_id == -1) {
-        perror("Main2 - shknot_id shmget()");
-        return 1;
-    }
+    key_t knot_key = gorckey("./keys/knot_key.txt", 9988);
+    int shknot_id = crshmem(knot_key, sizeof(KNOT), SHM_RDONLY);
+    if (shknot_id == -1)
+        fprintf(stderr, "Warning: Main2 - shknot_id - crshmem()\n");
     
     while (!sig_val) {
 
         if (sem_wait(mainsem) == -1) {
             if (errno != EINTR) {
                 perror("Main2 - sem_wait()");
-                return 1;
+                return EXIT_FAILURE;
             }
         }
         if (LOOP_CON) {
 
-            sh_knot = shmat(shknot_id, NULL, 0);
-            if (sh_knot == NULL) {
-                perror("Main2 - sh_knot shmat()");
-                return 1;
-            }
+            sh_knot = attshmem(shknot_id, NULL, SHM_RND);
+            if (sh_knot == NULL)
+                fprintf(stderr, "Warning: Main2 - sh_knot - attshmem()\n");
 
             knot = *sh_knot;
             knot.step_x = 0;
@@ -80,51 +80,49 @@ int main(int argc, char *argv[]) {
                 knot.step_counter = 0;
                 knot.step_y = 0;
             } else if (strcmp(argv[0], "process_2") == 0) {
-                knot.step_counter = (((knot.width * knot.height) / PROC_NUM) * 4);
+                knot.step_counter = ((EMVADON / PROC_NUM) * 4);
                 knot.step_y = knot.height / PROC_NUM;
             } else if (strcmp(argv[0], "process_3") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 2) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 2) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 2;
             } else if (strcmp(argv[0], "process_4") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 3) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 3) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 3;
             } else if (strcmp(argv[0], "process_5") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 4) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 4;
             } else if (strcmp(argv[0], "process_6") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 5) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 5) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 5;
             } else if (strcmp(argv[0], "process_7") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 6) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 6) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 6;
             } else if (strcmp(argv[0], "process_8") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 7) *4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 7) *4);
                 knot.step_y = (knot.height / PROC_NUM) * 7;
             } else if (strcmp(argv[0], "process_9") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 8) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 8) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 8;
             } else if (strcmp(argv[0], "process_10") == 0) {
-                knot.step_counter = ((((knot.width * knot.height) / PROC_NUM) * 9) * 4);
+                knot.step_counter = (((EMVADON / PROC_NUM) * 9) * 4);
                 knot.step_y = (knot.height / PROC_NUM) * 9;
             }
 
             if(threader(knot) != 0) {
                 perror("Main2.c - threader()");
-                return 1;
+                return EXIT_FAILURE;
             }
             LOOP_CON = 0;
             if (sem_post(mainsem) == -1) {
                 perror("Main2 - sem_post()");
-                return 1;
+                return EXIT_FAILURE;
             }
-            if(shmdt(sh_knot) == -1) {
-                perror("Main2 - sh_knot shmdt()");
-                return 1;
-            }
+            if (dtshmem(sh_knot) == -1)
+                fprintf(stderr, "Warning: Main2 - sh_knot - dtshmem()\n");
         }
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 void signal_handler(int sig) {

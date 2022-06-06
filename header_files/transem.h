@@ -1,7 +1,7 @@
-#ifndef SEM_TH_H
-#define SEM_TH_H
+#ifndef _TRANSEM_H
+#define _TRANSEM_H 1
 
 sem_t *transem;
 
-#endif /* SEM_TH_H */
+#endif /* _TRANSEM_H */
 

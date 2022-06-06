@@ -1,7 +1,7 @@
-#ifndef PLOT_H
-#define PLOT_H
+#ifndef _BOARD_H
+#define _BOARD_H 1
 
-int board(int pids[]);
+int board(const int pids[]);
 
-#endif /* PLOT_H */
+#endif /* _BOARD_H */
 

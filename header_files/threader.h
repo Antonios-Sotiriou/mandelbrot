@@ -1,9 +1,9 @@
-#ifndef THREADER_H
-#define THREADER_H
+#ifndef _THREADER_H
+#define _THREADER_H 1
 
 #include "objects.h"
 
 int threader(KNOT knot);
 
-#endif /* THREADER_H */
+#endif /* _THREADER_H */
 

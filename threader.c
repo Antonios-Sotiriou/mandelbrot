@@ -1,39 +1,74 @@
-#include <stdio.h>
-#include <unistd.h>
+// general headers
+#ifndef _STDIO_H
+    #include <stdio.h>
+#endif
+#ifndef _STDLIB_H
+    #include <stdlib.h>
+#endif
+
+// multiprocessing includes
+#ifndef _UNISTD_H
+    #include <unistd.h>
+#endif
 
 // shared memory
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <semaphore.h>
+#ifndef _SYS_IPC_H
+    #include <sys/ipc.h>
+#endif
+#ifndef _SYS_SHM_H
+    #include <sys/shm.h>
+#endif
+#ifndef _SEMAPHORE_H
+    #include <semaphore.h>
+#endif
 
 // signals
-#include <signal.h>
+#ifndef _SIGNAL_H
+    #include <signal.h>
+#endif
 
-// object specific headers
-#include "header_files/objects.h"
-#include "header_files/global_vars.h"
-#include "header_files/painter.h"
+// Project specific headers
+#ifndef _SHMEM_H
+    #include "header_files/shmem.h"
+#endif
+#ifndef _OBJECTS_H
+    #include "header_files/objects.h"
+#endif
+#ifndef _GLOBAL_VARS_H
+    #include "header_files/global_vars.h"
+#endif
+// Macro to help us with the computations in painter function.Thats why we define it before the painter include and under the object include.
+#ifndef SCALES
+    #define SCALES 1
+    #define XSCALE (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
+    #define YSCALE (knot.y - (knot.height / knot.vert)) / (knot.height / knot.zoom) + knot.init_y;
+#endif
+
+#ifndef _PAINTER_H
+    #include "header_files/painter.h"
+#endif
+// some usefull Macros
+#ifndef EMVADON
+   #define EMVADON (knot.width * knot.height)
+#endif
 
 int threader(KNOT knot) {
 
     char *sh_image;
-    key_t image_key = ftok("./keys/image_key.txt", 8899);
-    int shimage_id = shmget(image_key, knot.width * knot.height * 4, 0666);
-    if (shimage_id == -1) {
-        perror("Threader - shimage_id shmget()");
-        return 1;
-    }
-    sh_image = shmat(shimage_id, NULL, 0);
-    if (sh_image == NULL) {
-        perror("Threader - sh_image shmat()");
-        return 1;
-    }
+    key_t image_key = gorckey("./keys/image_key.txt", 8899);
+    int shimage_id = crshmem(image_key, EMVADON * 4, SHM_RDONLY);
+    if (shimage_id == -1)
+        fprintf(stderr, "Warning: Threader - shimage_id - crshmem()\n");
+
+    sh_image = attshmem(shimage_id, NULL, SHM_RND);
+    if (sh_image == NULL)
+        fprintf(stderr, "Warning: Threader - sh_image - attshmem()\n");
 
     int counter = knot.step_counter;
     int x = knot.step_x;
     int y = knot.step_y;
 
-    for (int i = 0; i < (knot.width * knot.height) / PROC_NUM; i++) {
+    for (int i = 0; i < EMVADON / PROC_NUM; i++) {
 
         if (x == knot.width) {
             y += 1;
@@ -49,10 +84,10 @@ int threader(KNOT knot) {
     }
 
     kill(getppid(), SIGRTMIN);
-    if(shmdt(sh_image) == -1) {
-        perror("Threader - sh_image shmdt()");
-        return 1;
-    }
-    return 0;
+    
+    if (dtshmem(sh_image) == -1)
+        fprintf(stderr, "Warning: Threader - sh_image - dtshmem()\n");
+
+    return EXIT_SUCCESS;
 }
 

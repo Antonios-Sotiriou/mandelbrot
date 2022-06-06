@@ -1,57 +1,80 @@
 // general headers
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
+#ifndef _STDIO_H
+    #include <stdio.h>
+#endif
+#ifndef _STDLIB_H
+    #include <stdlib.h>
+#endif
 
 // multiprocessing includes
-#include <unistd.h>
-#include <sys/wait.h>
+#ifndef _UNISTD_H
+    #include <unistd.h>
+#endif
+#ifndef _SYS_WAIT_H
+    #include <sys/wait.h>
+#endif
 
 // shared memory
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <semaphore.h>
+#ifndef _SYS_IPC_H
+    #include <sys/ipc.h>
+#endif
+#ifndef _SYS_SHM_H
+    #include <sys/shm.h>
+#endif
+#ifndef _SEMAPHORE_H
+    #include <semaphore.h>
+#endif
 
-// signal
-#include <signal.h>
+// signals
+#ifndef _SIGNAL_H
+    #include <signal.h>
+#endif
 
-// Time included for testing execution time
+// HEADERS INCLUDED FOR TESTING
 #include <time.h>
 
-// object specific headers
-#include "header_files/locale.h"
-#include "header_files/objects.h"
-#include "header_files/global_vars.h"
-#include "header_files/transmitter.h"
+// Project specific headers
+#ifndef _SHMEM_H
+    #include "header_files/shmem.h"
+#endif
+#ifndef _OBJECTS_H
+    #include "header_files/objects.h"
+#endif
+#ifndef _GLOBAL_VARS_H
+    #include "header_files/global_vars.h"
+#endif
+#ifndef _TRANSMITTER_H
+    #include "header_files/transmitter.h"
+#endif
+
+// some usefull Macros
+#ifndef EMVADON 
+    #define EMVADON (obj.winattr->width * obj.winattr->height)
+#endif
 
 // initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
 void init_knot(KNOT *knot, const Object obj);
 
 // General initialization and event handling.
-int board(int pids[]) {
+const int board(const int pids[]) {
 
     // shared memory
     // object to transfer between processes the integer variables for each process calculations.
     KNOT *sh_knot;
-    key_t knot_key = ftok("./keys/knot_key.txt", 9988);
-    int shknot_id = shmget(knot_key, sizeof(KNOT), 0666);
-    if (shknot_id == -1) {
-        perror("Board - shknot_id shmget()");
-        return EXIT_FAILURE;
-    }
-    sh_knot = shmat(shknot_id, NULL, 0);
-    if (sh_knot == NULL) {
-        perror("Board - sh_knot shmat()");
-        return EXIT_FAILURE;
-    }
+    key_t knot_key = gorckey("./keys/knot_key.txt", 9988);
+    int shknot_id = crshmem(knot_key, sizeof(KNOT), SHM_RDONLY);
+    if (shknot_id == -1)
+        fprintf(stderr, "Warning: Board - shknot_id - crshmem()\n");
+
+    sh_knot = attshmem(shknot_id, NULL, SHM_RND);
+    if (sh_knot == NULL)
+        fprintf(stderr, "Warning: Board - sh_knot - attshmem()\n");
 
     // The shared image data key.
-    key_t image_key = ftok("./keys/image_key.txt", 8899);
-    if (image_key == -1) {
-        perror("Main - image_key ftok()");
-        return 1;
-    }
-    // The shared image data memory id.He define it here so it is available in the event loop further down.
+    key_t image_key = gorckey("./keys/image_key.txt", 8899);
+    if (image_key == -1)
+        fprintf(stderr, "Warning: Board - image_key - gorckey()\n");
+    // The shared image data memory id.We define it here so it is available in the event loop further down.
     int shimage_id;
 
     Display *displ;
@@ -72,8 +95,8 @@ int board(int pids[]) {
 
     /*  Root main Window */
     XWindowAttributes winattr;
-    XSetWindowAttributes win_attr;
-    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, 0, &win_attr);
+    XSetWindowAttributes set_attr;
+    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, 0, &set_attr);
     XSelectInput(displ, win, SubstructureRedirectMask | ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask);
     XMapWindow(displ, win);
     obj.win = win;
@@ -131,6 +154,7 @@ int board(int pids[]) {
     clock_t end;
     double exec_time;
 
+    int expose_counter = 0;
     while (1) {
         while (XPending(displ) > 0) {
             XNextEvent(displ, &event);
@@ -145,15 +169,19 @@ int board(int pids[]) {
                     for (int i = 0; i < PROC_NUM; i++) {
                         kill(pids[i], SIGKILL);
                     }
-                    shmdt(sh_knot);
-                    shmctl(shknot_id, IPC_RMID, 0);
-                    shmctl(shimage_id, IPC_RMID, 0);
+                    if (dtshmem(sh_knot) == -1)
+                        fprintf(stderr, "Warning: Board - ClientMessage Event - sh_knot - dtshmem()\n");
+                    if (destshmem(shknot_id, IPC_RMID, 0) == -1)
+                        fprintf(stderr, "Warning: Board - ClientMessage Event - shknot_id - destshmem()\n");
+                    if (destshmem(shimage_id, IPC_RMID, 0) == -1)
+                        fprintf(stderr, "Warning: Board - ClientMessage Event - shimage_id - destshmem()\n");
                     return EXIT_SUCCESS;
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
-                if (event.xresizerequest.window == win) {
+                if (event.xresizerequest.window == win && expose_counter != 0) {
                     printf("Window resized\n");
-                    shmctl(shimage_id, IPC_RMID, 0);
+                    if (destshmem(shimage_id, IPC_RMID, 0) == -1)
+                        fprintf(stderr, "Warning: Board - Expose Event - shimage_id - destshmem()\n");
                     // Here i must find a way to discard the resizing event until the last one.
                 }
                 /* Get window attributes */
@@ -162,14 +190,13 @@ int board(int pids[]) {
                 // time count...
                 begin = clock();
                 // At expose event we create the shared image data memory.We do it here because we need to recreate it if user resizes the window.
-                shimage_id = shmget(image_key, sizeof(char) * obj.winattr->width * obj.winattr->height * 4, 0666 | IPC_CREAT);
-                if (shimage_id == -1) {
-                    perror("Board - Expose Event-shimage_id shmget()");
-                    return EXIT_FAILURE;;
-                }
+                shimage_id = crshmem(image_key, sizeof(char) * EMVADON * 4, 0666 | IPC_CREAT);
+                if (shimage_id == -1)
+                    fprintf(stderr, "Warning: Board - Expose Event - crshmem()\n");
                 // initialize knot object and set shared memory vaules equal to knot.
                 init_knot(sh_knot, obj);
                 transmitter(obj, pids);
+                expose_counter += 1;
                 end = clock();
                 exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
                 printf("Iterator Execution Time : %f\n", exec_time);

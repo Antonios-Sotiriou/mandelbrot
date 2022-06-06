@@ -1,5 +1,5 @@
-#ifndef PALETTE_H
-#define PALETTE_H
+#ifndef _PALETTE_H
+#define _PALETTE_H 1
 
 static const int palette[] = {
     0x1b001e,
@@ -105,5 +105,5 @@ static const int palette[] = {
     0x000000,
 };
 
-#endif /* PALETTE_H */
+#endif /* _PALETTE_H */
 
