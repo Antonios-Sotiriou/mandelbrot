@@ -50,6 +50,7 @@
 // some usefull Macros
 #ifndef EMVADON 
     #define EMVADON (obj.winattr->width * obj.winattr->height)
+    #define YPOLOIPON (obj.winattr->width * obj.winattr->height % PROC_NUM)
 #endif
 
 // initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
@@ -96,7 +97,8 @@ const int board(const int pids[]) {
     /*  Root main Window */
     XWindowAttributes winattr;
     XSetWindowAttributes set_attr;
-    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, 0, &set_attr);
+    set_attr.background_pixel = 0x000000;
+    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel, &set_attr);
     XSelectInput(displ, win, SubstructureRedirectMask | ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask);
     XMapWindow(displ, win);
     obj.win = win;
@@ -179,6 +181,8 @@ const int board(const int pids[]) {
                 }
             } else if (event.type == Expose && event.xclient.window == win) {
                 if (event.xresizerequest.window == win && expose_counter != 0) {
+                    if (event.xconfigure.width)
+                        printf("Width resized\n");
                     printf("Window resized\n");
                     if (destshmem(shimage_id, IPC_RMID, 0) == -1)
                         fprintf(stderr, "Warning: Board - Expose Event - shimage_id - destshmem()\n");
@@ -187,6 +191,9 @@ const int board(const int pids[]) {
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
+                if (YPOLOIPON) {
+                    obj.winattr->height += YPOLOIPON;
+                }
                 // time count...
                 begin = clock();
                 // At expose event we create the shared image data memory.We do it here because we need to recreate it if user resizes the window.
