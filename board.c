@@ -79,7 +79,6 @@ const int board(const int pids[]) {
     int shimage_id;
 
     Display *displ;
-    int screen;
     Window win;
     XEvent event;
     Object obj;
@@ -92,14 +91,14 @@ const int board(const int pids[]) {
         obj.displ = displ;
     }
 
-    screen = DefaultScreen(displ);
+    int screen = DefaultScreen(displ);
 
     /*  Root main Window */
     XWindowAttributes winattr;
     XSetWindowAttributes set_attr;
+    set_attr.event_mask = ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
     set_attr.background_pixel = 0x000000;
-    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel, &set_attr);
-    XSelectInput(displ, win, SubstructureRedirectMask | ExposureMask | KeyPressMask | ButtonPressMask | ButtonReleaseMask);
+    win = XCreateWindow(displ, XRootWindow(displ, screen), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel | CWEventMask, &set_attr);
     XMapWindow(displ, win);
     obj.win = win;
 
@@ -128,22 +127,12 @@ const int board(const int pids[]) {
         perror("Board - XGetIMValues()");
         return EXIT_FAILURE;;
     }
-    // for (int i = 0; i < styles->count_styles; i++) {
-    //     printf("Styles supported %lu.\n", styles->supported_styles[i]);
-    // }
     xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, win, NULL);
     if (xic == NULL) {
         perror("Board - XreateIC()");
         return EXIT_FAILURE;;
     }
     XSetICFocus(xic);
-
-    /* Add grafical context to window */
-    XGCValues values;
-    values.foreground = XWhitePixel(displ, screen);
-    values.background = XBlackPixel(displ, screen);
-    GC gc = XCreateGC(displ, win, GCForeground | GCBackground, &values);
-    obj.gc = gc;
     
     obj.max_iter = ITERATIONS;
     obj.horiz = HORIZONTAL;
@@ -151,10 +140,6 @@ const int board(const int pids[]) {
     obj.zoom = ZOOM;
     obj.init_x = 0;
     obj.init_y = 0;
-
-    clock_t begin;
-    clock_t end;
-    double exec_time;
 
     int expose_counter = 0;
     while (1) {
@@ -164,51 +149,54 @@ const int board(const int pids[]) {
             if (event.type == ClientMessage) {
                 if (event.xclient.data.l[0] == wm_delete_window) {
                     printf("WM_DELETE_WINDOW");
-                    if (gc != NULL) {
-                        XFreeGC(displ, gc);
-                    }
-                    XCloseDisplay(displ);
+
                     for (int i = 0; i < PROC_NUM; i++) {
                         kill(pids[i], SIGKILL);
                     }
-                    if (dtshmem(sh_knot) == -1)
+                    if (dtshmem(sh_knot))
                         fprintf(stderr, "Warning: Board - ClientMessage Event - sh_knot - dtshmem()\n");
-                    if (destshmem(shknot_id, IPC_RMID, 0) == -1)
+                    if (destshmem(shknot_id, IPC_RMID, 0))
                         fprintf(stderr, "Warning: Board - ClientMessage Event - shknot_id - destshmem()\n");
-                    if (destshmem(shimage_id, IPC_RMID, 0) == -1)
+                    if (destshmem(shimage_id, IPC_RMID, 0))
                         fprintf(stderr, "Warning: Board - ClientMessage Event - shimage_id - destshmem()\n");
+
+                    XDestroyWindow(displ, win);
+                    XCloseDisplay(displ);
                     return EXIT_SUCCESS;
                 }
-            } else if (event.type == Expose && event.xclient.window == win) {
-                if (event.xresizerequest.window == win && expose_counter != 0) {
-                    if (event.xconfigure.width)
-                        printf("Width resized\n");
-                    printf("Window resized\n");
-                    if (destshmem(shimage_id, IPC_RMID, 0) == -1)
+
+
+            } else if (event.type == Expose) {
+                printf("Expose events count: %d\n", event.xexpose.count);
+                // printf("XCheckIfEvent : %s\n", XCheckIfEvent(displ, &ev, predicate, NULL) ? "True" : "False");
+
+                if (expose_counter) {
+                    if (destshmem(shimage_id, IPC_RMID, 0))
                         fprintf(stderr, "Warning: Board - Expose Event - shimage_id - destshmem()\n");
                     // Here i must find a way to discard the resizing event until the last one.
                 }
+
                 /* Get window attributes */
                 XGetWindowAttributes(displ, win, &winattr);
                 obj.winattr = &winattr;
+
+
                 if (YPOLOIPON) {
                     obj.winattr->height += YPOLOIPON;
                 }
-                // time count...
-                begin = clock();
+
                 // At expose event we create the shared image data memory.We do it here because we need to recreate it if user resizes the window.
                 shimage_id = crshmem(image_key, sizeof(char) * EMVADON * 4, 0666 | IPC_CREAT);
                 if (shimage_id == -1)
                     fprintf(stderr, "Warning: Board - Expose Event - crshmem()\n");
+
                 // initialize knot object and set shared memory vaules equal to knot.
                 init_knot(sh_knot, obj);
                 transmitter(obj, pids);
-                expose_counter += 1;
-                end = clock();
-                exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
-                printf("Iterator Execution Time : %f\n", exec_time);
-            } else if (event.type == ButtonPress && event.xclient.window == win) {
 
+                expose_counter += 1;
+
+            } else if (event.type == ButtonPress) {
                 if (obj.init_x == 0.00 && obj.init_y == 0.00) {
                     obj.init_x = (((double)event.xbutton.x - (obj.winattr->width / obj.horiz)) / (obj.winattr->width / obj.zoom));
                     obj.init_y = (((double)event.xbutton.y - (obj.winattr->height / obj.vert)) / (obj.winattr->height / obj.zoom));
@@ -222,14 +210,11 @@ const int board(const int pids[]) {
                 } else if (event.xkey.keycode == 3) {
                     obj.zoom /= 0.50;
                 }
+
                 init_knot(sh_knot, obj);
-                // time count...
-                begin = clock();
                 transmitter(obj, pids);
-                end = clock();
-                exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
-                printf("Iterator Execution Time : %f\n", exec_time);
-            } else if (event.type == KeyPress && event.xclient.window == win) {
+
+            } else if (event.type == KeyPress) {
                 int count = 0;  
                 KeySym keysym = 0;
                 char buffer[32];
@@ -258,6 +243,7 @@ const int board(const int pids[]) {
                 } else if (keysym == 65293) {
                     obj.zoom *= 0.50;
                 }
+
                 init_knot(sh_knot, obj);
                 transmitter(obj, pids);
             }

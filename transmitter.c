@@ -10,22 +10,13 @@
 #endif
 
 // shared memory
-#ifndef _SYS_IPC_H
-    #include <sys/ipc.h>
-#endif
 #ifndef _SYS_SHM_H
     #include <sys/shm.h>
-#endif
-#ifndef _SEMAPHORE_H
-    #include <semaphore.h>
 #endif
 
 /* semaphore specific includes */
 #ifndef _FCNTL_H
     #include <fcntl.h>
-#endif
-#ifndef _SYS_STAT_H
-    #include <sys/stat.h>
 #endif
 
 // signals
@@ -46,10 +37,12 @@
 #ifndef _THREADER_H
     #include "header_files/threader.h"
 #endif
-#ifndef _TRANSEM_H
-    #include "header_files/transem.h"
+#ifndef _PROCSYNC_H
+    #include "header_files/procsync.h"
 #endif
 
+// Global Variables
+sem_t *transem;
 // this global variable is used only from this file and only from transmitter function.
 int WAIT_CON = 0;
 
@@ -59,19 +52,20 @@ const int transmitter(const Object obj, const int pids[]) {
 
     XImage *image;
     Pixmap pixmap;
+
+    /* Add grafical context*/
+    XGCValues values;
+    values.foreground = XWhitePixel(obj.displ, obj.screen);
+    values.background = XBlackPixel(obj.displ, obj.screen);
+    GC gc = XCreateGC(obj.displ, obj.win, GCForeground | GCBackground, &values);
     
     // semaphores initialization
-    if (sem_unlink("/transem") == -1){
-        if (errno != ENOENT) {
-            perror("Transmitter - sem_unlink()");
-            return EXIT_FAILURE;
-        }
-    }
-    transem = sem_open("/transem", O_CREAT, 0666, PROC_NUM);
-    if (transem == SEM_FAILED) {
-        perror("Transmitter - sem_open()");
-        return EXIT_FAILURE;
-    }
+    if (unlinksem("/transem"))
+        fprintf(stderr, "Warning: Transmitter - /transem - unlinkif()\n");
+
+    transem = opensem("/transem", O_CREAT, 0666, PROC_NUM);
+    if (transem == SEM_FAILED)
+        fprintf(stderr, "Warning: Transmitter - /transem - opensem()\n");
 
     // signal register area to receive signal from child processes.
     struct sigaction sig = { 0 };
@@ -107,26 +101,30 @@ const int transmitter(const Object obj, const int pids[]) {
 
     image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, sh_image, obj.winattr->width, obj.winattr->height, 32, 0);
     pixmap = XCreatePixmap(obj.displ, obj.win, obj.winattr->width, obj.winattr->height, obj.winattr->depth);
-    XPutImage(obj.displ, pixmap, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
-    XCopyArea(obj.displ, pixmap, obj.win, obj.gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
+    XPutImage(obj.displ, pixmap, gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
+    XCopyArea(obj.displ, pixmap, obj.win, gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
     XFree(image);
     XFreePixmap(obj.displ, pixmap);
+    XFreeGC(obj.displ, gc);
 
     // closing the semaphore which used in main2.c because we can't close it there.
-    if (sem_close(transem) == -1) {
-        perror("Transmitter - sem_close()");
-        return EXIT_FAILURE;
-    }
+    if (closesem(transem))
+        fprintf(stderr, "Warning: Transmitter - transem - closesem()\n");
     
-    if (dtshmem(sh_image) == -1)
+    if (dtshmem(sh_image))
         fprintf(stderr, "Warning: Transmitter - sh_image - dtshmem()\n");
 
     return EXIT_SUCCESS;
 }
 
 void transmitter_handler(int sig) {
-    sem_wait(transem);
+
+    if (waitsem(transem))
+        fprintf(stderr, "Warning: Main2 - mainsem - waitsem()\n");
+
     WAIT_CON++;
-    sem_post(transem);
+
+    if (postsem(transem))
+        fprintf(stderr, "Warning: Main2 - mainsem - waitsem()\n");
 }
 

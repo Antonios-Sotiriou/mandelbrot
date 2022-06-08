@@ -1,13 +1,15 @@
 #ifndef _OBJECTS_H
 #define _OBJECTS_H 1
 
-#include <X11/Xlib.h>
+#ifndef _X11_XLIB_H_
+    #include <X11/Xlib.h>
+#endif
 
 typedef struct {
     Display *displ;
     Window win;
-    GC gc;
     XWindowAttributes *winattr;
+    int screen;
     unsigned char *image_data;
     int max_iter;
     int counter;
