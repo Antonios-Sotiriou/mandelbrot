@@ -19,7 +19,7 @@
 
 int main(int argc, char *argv[]) {
     
-    if (locale_init() == 1)
+    if (locale_init())
         fprintf(stderr, "Warning: Main -locale()\n");
 
     // object to transfer between processes which contains the integer variables for each process calculations.

@@ -22,9 +22,11 @@
     #include "header_files/shmem.h"
 #endif
 
-#define EXIT_FAILURE_NEGATIVE -1
+#ifndef EXIT_FAILURE_NEGATIVE
+    #define EXIT_FAILURE_NEGATIVE -1
+#endif
 
-// Create a key for accesing the shared memory.Returns -1 on error.
+// Create a key for accesing the shared memory.Returns -1 on error otherwise the key.
 const key_t gorckey(const char *path, const int key_id) {
 
     key_t knot_key = ftok(path, key_id);
@@ -34,7 +36,7 @@ const key_t gorckey(const char *path, const int key_id) {
     }
     return knot_key;
 }
-// Create or get a shared memory according to the flag provided.Returns -1 on error.
+// Create or get a shared memory according to the flag provided.Returns -1 on error otherwise the shared memory ID.
 const int crshmem(const key_t key, const size_t size, const int shmflag) {
 
     int shknot_id = shmget(key, size, shmflag);
@@ -44,7 +46,7 @@ const int crshmem(const key_t key, const size_t size, const int shmflag) {
     }
     return shknot_id;
 }
-// Attach a shared memory and return a void pointer pointing to the location.Returns NULL on error.
+// Attach a shared memory and return a void pointer pointing to the location.Returns NULL on error otherwise a void pointer which points to the shared memory.
 void *attshmem(int shmid, const void *shmaddr, int shmflag) {
 
     void *ptr = shmat(shmid, shmaddr, shmflag);
@@ -54,7 +56,7 @@ void *attshmem(int shmid, const void *shmaddr, int shmflag) {
     }
     return ptr;
 }
-// Dettach a shared memory.Returns -1 on error.
+// Dettach a shared memory.Returns -1 on error otherwise 0.
 const int dtshmem(const void *shmaddr) {
 
     if (shmdt(shmaddr) == -1) {
@@ -63,7 +65,7 @@ const int dtshmem(const void *shmaddr) {
     }
     return EXIT_SUCCESS;
 }
-// Destroy a shared memory.Returns -1 on error.
+// Destroy a shared memory.Returns -1 on error otherwise 0.
 int destshmem(const int shmid, const int cmd, struct shmid_ds *buf) {
     
     if (shmctl(shmid, cmd, buf) == -1) {

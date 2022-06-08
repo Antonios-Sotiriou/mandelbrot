@@ -85,7 +85,7 @@ int threader(KNOT knot) {
 
     kill(getppid(), SIGRTMIN);
 
-    if (dtshmem(sh_image) == -1)
+    if (dtshmem(sh_image))
         fprintf(stderr, "Warning: Threader - sh_image - dtshmem()\n");
 
     return EXIT_SUCCESS;

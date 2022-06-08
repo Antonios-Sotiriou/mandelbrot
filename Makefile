@@ -13,8 +13,8 @@ uninstall:
 	sudo apt remove libx11-dev;
 
 all:
-	$(CC) $(CFLAGS) main.c board.c transmitter.c locale.c shmem.c global_vars.c -o $(OBJ) $(LINKS);
-	$(CC) $(CFLAGS) main2.c shmem.c threader.c painter.c -o main2 $(LINKS);
+	$(CC) $(CFLAGS) main.c board.c transmitter.c locale.c shmem.c procsync.c global_vars.c -o $(OBJ) $(LINKS);
+	$(CC) $(CFLAGS) main2.c shmem.c procsync.c threader.c painter.c -o main2 $(LINKS);
 
 exec:
 	./plot

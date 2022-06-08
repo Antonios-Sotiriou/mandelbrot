@@ -21,7 +21,7 @@
 #include "header_files/objects.h"
 #include "header_files/global_vars.h"
 #include "header_files/threader.h"
-#include "header_files/mainsem.h"
+#include "header_files/procsync.h"
 
 #define EMVADON (knot.width * knot.height)
 
@@ -32,18 +32,14 @@ void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
-    // semaphore initialization
-    if (sem_unlink("/mainsem") == -1){
-        if (errno != ENOENT) {
-            perror("Main2 - sem_unlink()");
-            return EXIT_FAILURE;
-        }
-    }
-    mainsem = sem_open("/mainsem", O_CREAT, 0666, PROC_NUM);
-    if (mainsem == SEM_FAILED) {
-        perror("Main2 - sem_open()");
-        return EXIT_FAILURE;
-    }
+    // semaphores initialization
+    sem_t *mainsem;
+    if (unlinksem("/mainsem"))
+        fprintf(stderr, "Warning: Transmitter - /mainsem - unlinkif()\n");
+
+    mainsem = opensem("/mainsem", O_CREAT, 0666, PROC_NUM);
+    if (mainsem == SEM_FAILED)
+        fprintf(stderr, "Warning: Transmitter - /mainsem - opensem()\n");
 
     struct sigaction sig = { 0 };
     sig.sa_handler = &signal_handler;
@@ -61,12 +57,9 @@ int main(int argc, char *argv[]) {
     
     while (!sig_val) {
 
-        if (sem_wait(mainsem) == -1) {
-            if (errno != EINTR) {
-                perror("Main2 - sem_wait()");
-                return EXIT_FAILURE;
-            }
-        }
+        if (waitsem(mainsem))
+            fprintf(stderr, "Warning: Main2 - mainsem - waitsem()\n");
+
         if (LOOP_CON) {
 
             sh_knot = attshmem(shknot_id, NULL, SHM_RND);
@@ -113,11 +106,10 @@ int main(int argc, char *argv[]) {
                 return EXIT_FAILURE;
             }
             LOOP_CON = 0;
-            if (sem_post(mainsem) == -1) {
-                perror("Main2 - sem_post()");
-                return EXIT_FAILURE;
-            }
-            if (dtshmem(sh_knot) == -1)
+            if (postsem(mainsem))
+                fprintf(stderr, "Warning: Main2 - maisem - postsem()\n");
+
+            if (dtshmem(sh_knot))
                 fprintf(stderr, "Warning: Main2 - sh_knot - dtshmem()\n");
         }
     }
