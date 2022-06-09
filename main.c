@@ -18,7 +18,7 @@
 #include "header_files/board.h"
 
 int main(int argc, char *argv[]) {
-    
+
     if (locale_init())
         fprintf(stderr, "Warning: Main -locale()\n");
 

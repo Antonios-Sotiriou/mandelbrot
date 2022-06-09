@@ -1,7 +1,7 @@
 #ifndef _GLOBAL_VARS_H
 #define _GLOBAL_VARS_H 1
 
-static const int PROC_NUM = 6;                        // Number of Processes.Value can vary from 1 to 10 Excluding(3, 6, 7, 9).More than 10 is overkill.
+static const int PROC_NUM = 7;                        // Number of Processes.Value can vary from 1 to 10 Excluding(3, 6, 7, 9).More than 10 is overkill.
 static const int WIDTH = 800;                          // General window width.
 static const int HEIGHT = 800;                         // General window height.
 static const int ITERATIONS = 1000;                    // Number of mandelbrot iterations.
