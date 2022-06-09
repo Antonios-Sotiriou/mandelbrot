@@ -51,14 +51,7 @@ void transmitter_handler(int sig);
 const int transmitter(const Object obj, const int pids[]) {
 
     XImage *image;
-    Pixmap pixmap;
 
-    /* Add grafical context*/
-    XGCValues values;
-    values.foreground = XWhitePixel(obj.displ, obj.screen);
-    values.background = XBlackPixel(obj.displ, obj.screen);
-    GC gc = XCreateGC(obj.displ, obj.win, GCForeground | GCBackground, &values);
-    
     // semaphores initialization
     if (unlinksem("/transem"))
         fprintf(stderr, "Warning: Transmitter - /transem - unlinkif()\n");
@@ -100,12 +93,8 @@ const int transmitter(const Object obj, const int pids[]) {
     }
 
     image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, sh_image, obj.winattr->width, obj.winattr->height, 32, 0);
-    pixmap = XCreatePixmap(obj.displ, obj.win, obj.winattr->width, obj.winattr->height, obj.winattr->depth);
-    XPutImage(obj.displ, pixmap, gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
-    XCopyArea(obj.displ, pixmap, obj.win, gc, 0, 0, obj.winattr->width, obj.winattr->height, 0, 0);
+    XPutImage(obj.displ, obj.win, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
     XFree(image);
-    XFreePixmap(obj.displ, pixmap);
-    XFreeGC(obj.displ, gc);
 
     // closing the semaphore which used in main2.c because we can't close it there.
     if (closesem(transem))

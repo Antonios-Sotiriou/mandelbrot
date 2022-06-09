@@ -9,7 +9,7 @@ typedef struct {
     Display *displ;
     Window win;
     XWindowAttributes *winattr;
-    int screen;
+    GC gc;
     unsigned char *image_data;
     int max_iter;
     int counter;
