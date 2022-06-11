@@ -4,8 +4,9 @@
 #include <errno.h>
 
 // multiprocessing includes
-#include <unistd.h>
-#include <sys/wait.h>
+// #include <unistd.h>
+// #include <sys/wait.h>
+#include <pthread.h>
 
 // semaphores and synchronization
 #include <semaphore.h>
@@ -22,16 +23,22 @@
 
 int painter();
 int receiver();
-int oscillator();
+void *oscillator();
 int transmitter();
 int clientmessage(XEvent *event);
+int visibilitychange(XEvent *event);
+int mapnotify(XEvent *event);
+int unmapnotify(XEvent *event);
 int expose(XEvent *event);
 int buttonpress(XEvent *event);
 int board();
 
 #define EXIT_FAILURE_NEGATIVE -1
+#define POINTERMASKS ( ButtonPressMask )
+#define KEYBOARDMASKS ( KeyPressMask )
+#define EXPOSEMASKS ( StructureNotifyMask | SubstructureNotifyMask | VisibilityChangeMask | ExposureMask )
 
-enum { App_Close, App_Name, Atom_Type, Atom_Last};
+enum { App_Close, App_Name, App_Iconify, Atom_Type, Atom_Last};
 
 // Global Variables
 Display *displ;
@@ -40,43 +47,41 @@ XSetWindowAttributes set_app;
 Window app;
 static int screen;
 static int RUNNING = 1; 
-static const int PROC_NUM = 7;                         // Number of Processes.Value can vary from 1 to 10 Excluding(3, 6, 7, 9).More than 10 is overkill.
-static const int WIDTH = 800;                          // General window width.
-static const int HEIGHT = 800;                         // General window height.
+static const int THREADS_NUM = 7;                      // Number of Processes.Value can vary from 1 to 10 Excluding(3, 6, 7, 9).More than 10 is overkill.
+static const int WIDTH = 800;                          // App starting window width.
+static const int HEIGHT = 800;                         // App starting window height.
 // static const int ITERATIONS = 1000;                    // Number of mandelbrot iterations.
 // static const double HORIZONTAL = 2.00;                 // Horizontal scale.
 // static const double VERTICAL = 2.00;                   // Vetical scale.
 // static const double ZOOM = 4.00;                       // Mandelbrot starting zoom.
 static int (*handler[LASTEvent]) (XEvent *event) = {
-	[ButtonPress] = buttonpress,
 	[ClientMessage] = clientmessage,
 	// [ConfigureRequest] = configurerequest,
 	// [ConfigureNotify] = configurenotify,
 	// [DestroyNotify] = destroynotify,
 	// [EnterNotify] = enternotify,
+    [VisibilityNotify] = visibilitychange,
+	[MapNotify] = mapnotify,
+	[UnmapNotify] = unmapnotify,
 	[Expose] = expose,
 	// [FocusIn] = focusin,
 	// [KeyPress] = keypress,
 	// [MappingNotify] = mappingnotify,
-	// [MapRequest] = maprequest,
+	[ButtonPress] = buttonpress,
 	// [MotionNotify] = motionnotify,
-	// [PropertyNotify] = propertynotify,
-	// [UnmapNotify] = unmapnotify
+	// [PropertyNotify] = propertynotify
 };
 static Atom wmatom[Atom_Last];
 
 /* ##################################################################################################################### */
 int painter() {
-
-    // Add some randomness
-    srand(time(NULL));
     
     /* Add grafical context */
     XGCValues gc_values;
     gc_values.foreground = 0xffffff;
     GC rectangle = XCreateGC(displ, app, GCForeground, &gc_values);
 
-    printf("Execution reached painter ##########################\n");
+    // printf("Execution reached painter ##########################\n");
     XDrawRectangle(displ, app, rectangle, rand() % 400, rand() % 400, rand() % 200, rand() % 200);
     XFreeGC(displ, rectangle);
 
@@ -85,15 +90,16 @@ int painter() {
 /* ##################################################################################################################### */
 int receiver() {
 
-    printf("Execution reached receiver ##########################\n");
+    // printf("Execution reached receiver ##########################\n");
     return EXIT_SUCCESS;
 }
 /* ##################################################################################################################### */
-int oscillator() {
+void *oscillator(void *args) {
 
     int WAITING = 1;
+    int id = *(int*)args;
 
-    printf("Execution reached oscillator ##########################\n");
+    printf("Execution reached oscillator ########################## args: %d\n", id);
 
     if (WAITING) {
         printf("LOOPING\n");
@@ -106,35 +112,62 @@ int oscillator() {
 /* ##################################################################################################################### */
 const int transmitter() {
 
-    printf("Execution reached transmitter ##########################\n");
-
-    int pids[PROC_NUM];
-    for (int i = 0; i < PROC_NUM; i++) {
-        pids[i] = fork();
-        if (pids[i] == -1) {
-            perror("Main - fork()");
-            return EXIT_FAILURE;
-        } else if (pids[i] == 0) {
-            // child process
-            oscillator();
-            return EXIT_SUCCESS;
-        }
+    // printf("Execution reached transmitter ##########################\n");
+    pthread_t threads[THREADS_NUM];
+    
+    // Dynamically initiallize the thread_ids array;
+    int thread_ids[THREADS_NUM];
+    for (int i = 0; i < THREADS_NUM; i++) {
+        thread_ids[i] = i;
     }
+    for (int i = 0; i < THREADS_NUM; i++) {
+        if (pthread_create(&threads[i], NULL, &oscillator, &thread_ids[i]))
+            return EXIT_FAILURE;
+    }
+    for (int i = 0; i < THREADS_NUM; i++) {
+        if (pthread_join(threads[i], NULL))
+            return EXIT_FAILURE;
+    }    
+
     return EXIT_SUCCESS;
 }
 /* ##################################################################################################################### */
 int clientmessage(XEvent *event) {
-
-    printf("client message received   ******\n");
+    
+    if (event->xclient.data.l[0] == wmatom[App_Iconify]) {
+        printf("Iconify message received!\n");
+    }
+    // printf("client message received   ******\n");
     if (event->xclient.data.l[0] == wmatom[App_Close]) {
         printf("WM_DELETE_WINDOW\n");
         XDestroyWindow(displ, app);
         XCloseDisplay(displ);
         RUNNING = 0;
-        printf("client message processed  ******\n");
+        // printf("client message processed  ******\n");
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
+}
+/* ##################################################################################################################### */
+int visibilitychange(XEvent *event) {
+
+    printf("visibilitychange event received   ******\n");
+    // transmitter();
+    return EXIT_SUCCESS;
+}
+/* ##################################################################################################################### */
+int mapnotify(XEvent *event) {
+
+    printf("mapnotify event received   ******\n");
+    // XSync(displ, True);
+    return EXIT_SUCCESS;
+}
+/* ##################################################################################################################### */
+int unmapnotify(XEvent *event) {
+
+    printf("unmapnotify event received   ******\n");
+    // XSync(displ, True);
+    return EXIT_SUCCESS;
 }
 /* ##################################################################################################################### */
 int expose(XEvent *event) {
@@ -153,7 +186,9 @@ int buttonpress(XEvent *event) {
 // General initialization and event handling.
 const int board() {
 
-    printf("board starting initiallization   ******\n");
+    // printf("board starting initiallization   ******\n");
+    // Add some randomness
+    srand(time(NULL));
     XEvent event;
     
     displ = XOpenDisplay(NULL);
@@ -165,7 +200,7 @@ const int board() {
     XGetWindowAttributes(displ, XDefaultRootWindow(displ), &stat_root);
     
     /*  Root main Window */
-    set_app.event_mask = ExposureMask | KeyPressMask | ButtonPressMask;
+    set_app.event_mask = EXPOSEMASKS | KEYBOARDMASKS | POINTERMASKS;
     set_app.background_pixel = 0x000000;
     app = XCreateWindow(displ, XDefaultRootWindow(displ), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel | CWEventMask, &set_app);
     XMapWindow(displ, app);
@@ -176,6 +211,7 @@ const int board() {
 
     /* Change main window Title */
     wmatom[App_Name] = XInternAtom(displ, "WM_NAME", False);
+    wmatom[App_Iconify] = XInternAtom(displ, "WM_STATE", False);
     wmatom[Atom_Type] =  XInternAtom(displ, "STRING", False);
     XChangeProperty(displ, app, wmatom[App_Name], wmatom[Atom_Type], 8, PropModeReplace, (unsigned char*)"Mandelbrot Set", 14);
 
