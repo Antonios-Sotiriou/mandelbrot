@@ -10,6 +10,7 @@ typedef struct {
     Window win;
     XWindowAttributes *winattr;
     GC gc;
+    int proc_id;
     unsigned char *image_data;
     int max_iter;
     int counter;
@@ -20,10 +21,12 @@ typedef struct {
     double zoom; 
     double init_x; 
     double init_y;
+    int step_counter;
+    int step_x;
+    int step_y;
 } Object;
 
 typedef struct {
-    int proc_num;
     unsigned int width;
     unsigned int height;
     int max_iter;
