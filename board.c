@@ -47,7 +47,7 @@ typedef struct {
 
 } Mandelbrot;
 
-static void mandelbrot_init(Mandelbrot *md);
+static void mandelbrot_init(void);
 void painter(const Mandelbrot md, char *image_data);
 void receiver(Mandelbrot md);
 void *oscillator(void *args);
@@ -92,17 +92,23 @@ static void (*handler[LASTEvent]) (XEvent *event) = {
 	// [PropertyNotify] = propertynotify
 };
 static Atom wmatom[Atom_Last];
-
+Mandelbrot md_init;
 /* ##################################################################################################################### */
-static void mandelbrot_init(Mandelbrot *md) {
-    md->width = stat_app.width;
-    md->height = stat_app.height;
-    md->iterations = ITERATIONS;
-    md->horiz = HORIZONTAL; 
-    md->vert = VERTICAL;
-    md->zoom = ZOOM;
-    md->init_x = 0.00;
-    md->init_y = 0.00;
+static void mandelbrot_init(void) {
+    md_init.width = stat_app.width;
+    md_init.height = stat_app.height;
+    md_init.iterations = ITERATIONS;
+    md_init.counter = 0;
+    md_init.x = 0;
+    md_init.y = 0;
+    md_init.horiz = HORIZONTAL;
+    md_init.vert = VERTICAL;
+    md_init.zoom = ZOOM;
+    md_init.init_x = 0.00;
+    md_init.init_y = 0.00;
+    md_init.step_counter = 0;
+    md_init.step_x = 0;
+    md_init.step_y = 0;
 }
 /* ##################################################################################################################### */
 void painter(const Mandelbrot md, char *image_data) {
@@ -176,8 +182,7 @@ void receiver(Mandelbrot md) {
 /* ##################################################################################################################### */
 void *oscillator(void *args) {
 
-    Mandelbrot md;
-    mandelbrot_init(&md);
+    Mandelbrot md = md_init;
 
     int thread_id = *(int*)args;
     
@@ -235,6 +240,7 @@ const void mapnotify(XEvent *event) {
 
     printf("mapnotify event received   ******\n");
     XGetWindowAttributes(displ, app, &stat_app);
+    mandelbrot_init();
 
     if (transmitter())
         perror("mapnotify() --- transmitter()");
