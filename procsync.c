@@ -14,11 +14,6 @@
     #include <semaphore.h>
 #endif
 
-// some usefull macros
-#ifndef EXIT_FAILURE_NEGATIVE
-    #define EXIT_FAILURE_NEGATIVE -1
-#endif
-
 // Unlinks a semaphore is it was previously created and didn't closed properly.Returns -1 on error otherwise 0.
 const int unlinksem(const char *name) {
 
