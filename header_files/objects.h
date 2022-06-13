@@ -5,43 +5,16 @@
     #include <X11/Xlib.h>
 #endif
 
-typedef struct {
-    Display *displ;
-    Window win;
-    XWindowAttributes *winattr;
-    GC gc;
-    int proc_id;
-    unsigned char *image_data;
-    int max_iter;
-    int counter;
-    int x;
-    int y;
-    double horiz; 
-    double vert;
-    double zoom; 
-    double init_x; 
-    double init_y;
-    int step_counter;
-    int step_x;
-    int step_y;
-} Object;
-
-typedef struct {
-    unsigned int width;
-    unsigned int height;
-    int max_iter;
-    int counter;
-    int x;
-    int y;
-    double horiz; 
-    double vert;
-    double zoom; 
-    double init_x; 
-    double init_y;
-    int step_counter;
-    int step_x;
-    int step_y;
-} KNOT;
+// #define Keyboard                    ( KeyPress, KeyRelease )
+// #define Pointer                     ( ButtonPress, ButtonRelease, MotionNotify )
+// #define Window_crossing             ( EnterNotify, LeaveNotify )
+// #define Input_focus                 ( FocusIn, FocusOut )
+// #define Keymap_state                ( KeymapNotify )
+// #define Exposure                    ( Expose, GraphicsExpose, NoExpose )
+// #define Structure_control           ( CirculateRequest, ConfigureRequest, MapRequest, ResizeRequest )
+// #define Window_state                ( CirculateNotify, ConfigureNotify, CreateNotify, DestroyNotify, GravityNotify, MapNotify, MappingNotify, ReparentNotify, UnmapNotify, VisibilityNotify )
+// #define Colormap_state              ( ColormapNotify )
+// #define Client_communication        ( ClientMessage, PropertyNotify, SelectionClear, SelectionNotify, SelectionRequest )
 
 #endif /* _OBJECTS_H */
 
