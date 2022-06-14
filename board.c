@@ -4,7 +4,7 @@
 #include <errno.h>
 
 // multiprocessing includes
-#include <unistd.h>
+// #include <unistd.h>
 // #include <sys/wait.h>
 #include <pthread.h>
 
@@ -18,18 +18,18 @@
 #include <time.h>
 
 // Project specific headers
+#include <X11/Xlib.h>
 #include "header_files/locale.h"
-#include "header_files/objects.h"
 
-#define EXIT_FAILURE_NEGATIVE     -1                                               // Some functions need to return a negative value;
+#define EXIT_FAILURE_NEGATIVE     -1                                              // Some functions need to return a negative value;
 #define THREADS_NUM               7                                               // The number of Threads.
 #define WIDTH                     800                                             // App starting window width.
 #define HEIGHT                    800                                             // App starting window height.
 #define POINTERMASKS              ( ButtonPressMask )
 #define KEYBOARDMASKS             ( KeyPressMask )
-#define EXPOSEMASKS               ( StructureNotifyMask | SubstructureNotifyMask | VisibilityChangeMask | ExposureMask | ResizeRedirectMask )
+#define EXPOSEMASKS               ( StructureNotifyMask | SubstructureNotifyMask | VisibilityChangeMask | ExposureMask )
 
-enum { App_Close, App_Name, App_Iconify, Atom_Type, Atom_Last};
+enum { App_Close, App_Name, App_Maximized, App_Iconified, App_NormalState, Atom_Type, Atom_Last};
 
 typedef struct {
     
@@ -56,14 +56,20 @@ void receiver(Mandelbrot md);
 void *oscillator(void *args);
 const int transmitter(void);
 const void clientmessage(XEvent *event);
+void configurerequest(XEvent *event);
+void configurenotify(XEvent *event);
 void reparentnotify(XEvent *event);
 void visibilitychange(XEvent *event);
 const void mapnotify(XEvent *event);
 void resizerequest(XEvent *event);
 void unmapnotify(XEvent *event);
 void expose(XEvent *event);
+void noexpose(XEvent *event);
 void buttonpress(XEvent *event);
 void keypress(XEvent *event);
+const void pixmapupdate(void);
+const void pixmapdisplay(void);
+const void atomsinit(void);
 int board();
 
 // Global Variables
@@ -75,6 +81,9 @@ Pixmap pixmap;
 static int screen;
 static int MAPCOUNT = 0;
 static int ICONIFIED = 0;
+static int FULLSCREEN = 0;
+static int OLDWIDTH = WIDTH;
+static int OLDHEIGHT = HEIGHT;
 static int RUNNING = 1; 
 static const int ITERATIONS = 1000;                                       // Number of mandelbrot iterations.
 static const double HORIZONTAL = 2.00;                                    // Horizontal scale.
@@ -82,15 +91,16 @@ static const double VERTICAL = 2.00;                                      // Vet
 static const double ZOOM = 4.00;                                          // Mandelbrot starting zoom.
 static void (*handler[LASTEvent]) (XEvent *event) = {
 	[ClientMessage] = clientmessage,
-	// [ConfigureRequest] = configurerequest,
-	// [ConfigureNotify] = configurenotify,
 	// [DestroyNotify] = destroynotify,
 	// [EnterNotify] = enternotify,
     [ReparentNotify] = reparentnotify,
 	[MapNotify] = mapnotify,
     [VisibilityNotify] = visibilitychange,
 	[Expose] = expose,
+	[NoExpose] = noexpose,
 	[ResizeRequest] = resizerequest,
+	[ConfigureRequest] = configurerequest,
+	[ConfigureNotify] = configurenotify,
 	[UnmapNotify] = unmapnotify,
 	// [FocusIn] = focusin,
 	// [MappingNotify] = mappingnotify,
@@ -222,6 +232,9 @@ const int transmitter(void) {
 }
 /* ##################################################################################################################### */
 const void clientmessage(XEvent *event) {
+
+    printf("clientmessage event received\n");
+    printf("Atom message_type: %lu\n", event->xclient.data.l[0]);
     
     if (event->xclient.data.l[0] == wmatom[App_Close]) {
         printf("WM_DELETE_WINDOW\n");
@@ -234,39 +247,27 @@ const void clientmessage(XEvent *event) {
 /* ##################################################################################################################### */
 void reparentnotify(XEvent *event) {
 
-    clock_t begin;
-    clock_t end;
-    double exec_time;
-
+    printf("reparentnotify event received\n");
     if (event->xreparent.parent != app) {
 
         XGetWindowAttributes(displ, app, &stat_app);
         mandelbrot_init();
 
-        // time count...
-        begin = clock();
-
         if (transmitter())
             perror("mapnotify() - transmitter()");
-
-        end = clock();
-        exec_time = (double)(end - begin) / CLOCKS_PER_SEC;
-        printf("Iterator Execution Time : %f\n", exec_time);
     }
 }
 /* ##################################################################################################################### */
 const void mapnotify(XEvent *event) {
 
     printf("mapnotify event received\n");
-    GC pix = XCreateGC(displ, app, 0, NULL);
 
     if (MAPCOUNT) {
         printf("Other Mapnotify\n");
-        XCopyArea(displ, pixmap, app, pix, 0, 0, stat_app.width, stat_app.height, 0, 0);
+        pixmapdisplay();
     } else {
         printf("1st Mapnotify\n");
-        pixmap = XCreatePixmap(displ, app, stat_app.width, stat_app.height, stat_app.depth);
-        XCopyArea(displ, app, pixmap, pix, 0, 0, stat_app.width, stat_app.height, 0, 0);
+        pixmapupdate();
         MAPCOUNT = 1;
         XSync(displ, True);
     }
@@ -275,27 +276,61 @@ const void mapnotify(XEvent *event) {
 void visibilitychange(XEvent *event) {
 
     printf("visibilitychange event received\n");
-    // transmitter();
-
 }
 /* ##################################################################################################################### */
 void expose(XEvent *event) {
 
     printf("expose event received.Count: %d\n", event->xexpose.count);
+}
+/* ##################################################################################################################### */
+void noexpose(XEvent *event) {
 
+    printf("noexpose event received\n");
 }
 /* ##################################################################################################################### */
 void resizerequest(XEvent *event) {
 
     printf("resizerequest event received\n");
-
-    stat_app.width = event->xresizerequest.width;
-    stat_app.height = event->xresizerequest.height;
-
-    mandelbrot_init();
+    if (FULLSCREEN) {
+        md_init.width = stat_app.width = event->xresizerequest.width;
+        md_init.height = stat_app.height = event->xresizerequest.height;
+    } else {
+        md_init.width = stat_app.width = OLDWIDTH;
+        md_init.height = stat_app.height = OLDHEIGHT;
+    }
 
     if (transmitter())
         perror("resizerequest() - transmitter()");
+
+    pixmapupdate();
+}
+/* ##################################################################################################################### */
+void configurerequest(XEvent *event) {
+
+    printf("configurerequest event received\n");
+}
+/* ##################################################################################################################### */
+void configurenotify(XEvent *event) {
+
+    printf("configurenotify event received\n");
+    if (event->xconfigure.width == stat_root.width && event->xconfigure.height == (stat_root.height - event->xconfigure.y)) {
+        event->type = ResizeRequest;
+        event->xresizerequest.width = event->xconfigure.width;
+        event->xresizerequest.height = event->xconfigure.height;
+        FULLSCREEN = 1;
+        XSync(displ, True);
+    } else if (event->xconfigure.width == OLDWIDTH && event->xconfigure.height == OLDHEIGHT && FULLSCREEN) {
+        event->type = ResizeRequest;
+        event->xresizerequest.width = event->xconfigure.width;
+        event->xresizerequest.height = event->xconfigure.height;
+        FULLSCREEN = 0;
+        XSync(displ, True);
+    } else {
+        event->type = ResizeRequest;
+        event->xresizerequest.width = event->xconfigure.width;
+        event->xresizerequest.height = event->xconfigure.height;
+    }
+    XSendEvent(displ, app, False, SubstructureNotifyMask, event);
 }
 /* ##################################################################################################################### */
 void unmapnotify(XEvent *event) {
@@ -303,6 +338,7 @@ void unmapnotify(XEvent *event) {
     printf("unmapnotify event received\n");
     ICONIFIED = 1;
 }
+/* ##################################################################################################################### */
 void buttonpress(XEvent *event) {
 
     printf("buttonpress event received\n");
@@ -322,6 +358,8 @@ void buttonpress(XEvent *event) {
 
     if (transmitter())
         perror("buttonpress() - transmitter()");
+
+    pixmapupdate();
 }
 /* ##################################################################################################################### */
 void keypress(XEvent *event) {
@@ -377,14 +415,55 @@ void keypress(XEvent *event) {
 
     if (transmitter())
         perror("keypress() - transmitter()");
+
+    pixmapupdate();
+}
+/* ##################################################################################################################### */
+const void pixmapupdate(void) {
+
+    GC pix = XCreateGC(displ, app, 0, NULL);
+
+    pixmap = XCreatePixmap(displ, app, stat_app.width, stat_app.height, stat_app.depth);
+    XCopyArea(displ, app, pixmap, pix, 0, 0, stat_app.width, stat_app.height, 0, 0);
+    XFreeGC(displ, pix);
+}
+/* ##################################################################################################################### */
+const void pixmapdisplay(void) {
+
+    GC pix = XCreateGC(displ, app, 0, NULL);
+
+    XCopyArea(displ, pixmap, app, pix, 0, 0, stat_app.width, stat_app.height, 0, 0);
+    XFreeGC(displ, pix);
+}
+/* ##################################################################################################################### */
+const void atomsinit(void) {
+
+    /* Delete window initializer area */
+    wmatom[App_Close] = XInternAtom(displ, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(displ, app, &wmatom[App_Close], 1);
+
+    /* Change main window Title */
+    wmatom[App_Name] = XInternAtom(displ, "WM_NAME", False);
+    wmatom[Atom_Type] =  XInternAtom(displ, "STRING", False);
+    XChangeProperty(displ, app, wmatom[App_Name], wmatom[Atom_Type], 8, PropModeReplace, (unsigned char*)"Mandelbrot Set", 14);
+
+    wmatom[App_Maximized] = XInternAtom(displ, "_NET_WM_STATE_MAXIMIZED", True);
+    if (wmatom[App_Maximized] == None)
+        perror("No atom found.\n");
+
+    wmatom[App_Iconified] = XInternAtom(displ, "_NET_WM_STATE_ICONIFIED", True);
+    if (wmatom[App_Maximized] == None)
+        perror("No atom found.\n");
+
+    wmatom[App_NormalState] = XInternAtom(displ, "_NET_WM_STATE_NORMAL", True);
+    if (wmatom[App_Maximized] == None)
+        perror("No atom found.\n");
+
 }
 /* ##################################################################################################################### */
 // General initialization and event handling.
 const int board() {
 
-    // printf("board starting initiallization   ******\n");
-    // Add some randomness
-    // srand(time(NULL));
     XInitThreads();
     XEvent event;
     
@@ -402,18 +481,10 @@ const int board() {
     app = XCreateWindow(displ, XDefaultRootWindow(displ), 0, 0, WIDTH, HEIGHT, 0, CopyFromParent, InputOutput, CopyFromParent, CWBackPixel | CWEventMask, &set_app);
     XMapWindow(displ, app);
 
-    /* Delete window initializer area */
-    wmatom[App_Close] = XInternAtom(displ, "WM_DELETE_WINDOW", False);
-    XSetWMProtocols(displ, app, &wmatom[App_Close], 1);
-
-    /* Change main window Title */
-    wmatom[App_Name] = XInternAtom(displ, "WM_NAME", False);
-    wmatom[App_Iconify] = XInternAtom(displ, "WM_STATE", False);
-    wmatom[Atom_Type] =  XInternAtom(displ, "STRING", False);
-    XChangeProperty(displ, app, wmatom[App_Name], wmatom[Atom_Type], 8, PropModeReplace, (unsigned char*)"Mandelbrot Set", 14);
+    atomsinit();
 
     while (RUNNING) {
-        printf("Event type: %d\n", event.type);
+        printf("Event type: %2d  -->>  ", event.type);
         XNextEvent(displ, &event);
 
 		if (handler[event.type])
