@@ -22,7 +22,7 @@
 #include "header_files/locale.h"
 
 #define EXIT_FAILURE_NEGATIVE     -1                                              // Some functions need to return a negative value;
-#define THREADS_NUM               10                                              // The number of Threads.
+#define THREADS_NUM               7                                              // The number of Threads.
 #define WIDTH                     800                                             // App starting window width.
 #define HEIGHT                    800                                             // App starting window height.
 #define ITERATIONS                1000                                            // Number of mandelbrot iterations.
@@ -31,7 +31,7 @@
 #define ZOOM                      4.00                                            // Mandelbrot starting zoom.
 #define POINTERMASKS              ( ButtonPressMask )
 #define KEYBOARDMASKS             ( KeyPressMask )
-#define EXPOSEMASKS               ( StructureNotifyMask | SubstructureNotifyMask )
+#define EXPOSEMASKS               ( StructureNotifyMask )
 
 enum { App_Close, App_Name, App_Maximized, App_Iconified, App_NormalState, Atom_Type, Atom_Last};
 
@@ -59,6 +59,7 @@ void painter(const Mandelbrot md, char *image_data);
 void receiver(Mandelbrot md);
 void *oscillator(void *args);
 const int transmitter(void);
+Bool predicate(Display *displ, XEvent *event, XPointer args);
 const void clientmessage(XEvent *event);
 void reparentnotify(XEvent *event);
 const void mapnotify(XEvent *event);
@@ -271,7 +272,7 @@ const void mapnotify(XEvent *event) {
         printf("1st Mapnotify\n");
         pixmapupdate();
         MAPCOUNT = 1;
-        // XSync(displ, True);
+        XSync(displ, True);
     }
 }
 /* ##################################################################################################################### */
@@ -287,7 +288,8 @@ void expose(XEvent *event) {
                 perror("resizerequest() - transmitter()");
 
             pixmapupdate();
-                XSync(displ, True);
+
+            XSync(displ, True);
         }
         REPAINT = 0;
     }
@@ -300,7 +302,6 @@ void noexpose(XEvent *event) {
 /* ##################################################################################################################### */
 void resizerequest(XEvent *event) {
 
-    printf("resizerequest event received\n");
     if (FULLSCREEN) {
         md_init.width = stat_app.width = event->xresizerequest.width;
         md_init.height = stat_app.height = event->xresizerequest.height;
@@ -309,11 +310,14 @@ void resizerequest(XEvent *event) {
         md_init.height = stat_app.height = OLDHEIGHT;
     }
 
-    if (transmitter())
-        perror("resizerequest() - transmitter()");
+    if (!XPending(displ)) {
+        if (transmitter())
+            perror("resizerequest() - transmitter()");
 
-    pixmapupdate();
-    XSync(displ, True);
+        pixmapupdate();
+    } else {
+        return;
+    }
 }
 /* ##################################################################################################################### */
 Bool predicate(Display *displ, XEvent *event, XPointer args) {
@@ -324,30 +328,22 @@ Bool predicate(Display *displ, XEvent *event, XPointer args) {
 }
 void configurenotify(XEvent *event) {
 
-    printf("configurenotify event received\n");
-    XEvent ev;//, pred_ev;
+    XEvent ev;
     ev.type = ResizeRequest;
 
-    if (event->xconfigure.width == stat_root.width && event->xconfigure.height == (stat_root.height - event->xconfigure.y)) {
+    if ((event->xconfigure.width == stat_root.width && event->xconfigure.height == (stat_root.height - event->xconfigure.y))) {
         ev.xresizerequest.width = event->xconfigure.width;
         ev.xresizerequest.height = event->xconfigure.height;
         FULLSCREEN = 1;
-        REPAINT = 0;
-        printf("HIT FIRST IF\n");
-    } else if (event->xconfigure.width == OLDWIDTH && event->xconfigure.height == OLDHEIGHT && FULLSCREEN) {
+    } else if ((event->xconfigure.width == OLDWIDTH && event->xconfigure.height == OLDHEIGHT) && FULLSCREEN) {
         ev.xresizerequest.width = event->xconfigure.width;
         ev.xresizerequest.height = event->xconfigure.height;
         FULLSCREEN = 0;
-        REPAINT = 0;
-        printf("HIT SECOND IF\n");
     } else {
-        // printf("Predicate procedure: %s\n", XCheckIfEvent(displ, &pred_ev, &predicate, None) ? "True" : "False");
         OLDWIDTH = event->xconfigure.width;
         OLDHEIGHT = event->xconfigure.height;
-        printf("HIT THIRD IF\n");
-        return;
     }
-    XSendEvent(displ, app, False, SubstructureNotifyMask, &ev);
+    XSendEvent(displ, app, False, StructureNotifyMask, &ev);
 }
 /* ##################################################################################################################### */
 void unmapnotify(XEvent *event) {
@@ -439,7 +435,7 @@ void keypress(XEvent *event) {
 const void pixmapupdate(void) {
 
     XGCValues gc_vals;
-    gc_vals.graphics_exposures = True;
+    gc_vals.graphics_exposures = False;
     GC pix = XCreateGC(displ, app, GCGraphicsExposures, &gc_vals);
 
     pixmap = XCreatePixmap(displ, app, stat_app.width, stat_app.height, stat_app.depth);
@@ -470,15 +466,15 @@ const void atomsinit(void) {
 
     wmatom[App_Maximized] = XInternAtom(displ, "_NET_WM_STATE_MAXIMIZED", True);
     if (wmatom[App_Maximized] == None)
-        perror("No atom found.\n");
+        perror("No atom found");
 
     wmatom[App_Iconified] = XInternAtom(displ, "_NET_WM_STATE_ICONIFIED", True);
     if (wmatom[App_Iconified] == None)
-        perror("No atom found.\n");
+        perror("No atom found");
 
     wmatom[App_NormalState] = XInternAtom(displ, "_NET_WM_STATE_NORMAL", True);
     if (wmatom[App_NormalState] == None)
-        perror("No atom found.\n");
+        perror("No atom found");
 
 }
 /* ##################################################################################################################### */
@@ -506,11 +502,13 @@ const int board() {
 
     while (RUNNING) {
 
-        printf("Event type: %d  -->>  ", event.type);
         XNextEvent(displ, &event);
 
-		if (handler[event.type])
-			handler[event.type](&event);
+        if (event.type == ConfigureNotify && !event.xconfigure.send_event)
+            continue;
+        else 
+            if (handler[event.type])
+                handler[event.type](&event);
     }
     return EXIT_SUCCESS;
 }
