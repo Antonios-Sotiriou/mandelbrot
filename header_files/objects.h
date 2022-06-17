@@ -10,6 +10,8 @@ typedef struct {
     Window win;
     XWindowAttributes *winattr;
     GC gc;
+    int width;
+    int height;
     unsigned char *image_data;
     int max_iter;
     int counter;

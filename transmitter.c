@@ -46,11 +46,14 @@ sem_t *transem;
 // this global variable is used only from this file and only from transmitter function.
 int WAIT_CON = 0;
 
-void transmitter_handler(int sig);
+static const void transmitter_handler(int sig);
 
 const int transmitter(const Object obj, const int pids[]) {
 
     XImage *image;
+    XGCValues gcvals;
+    gcvals.graphics_exposures = False;
+    GC gc = XCreateGC(obj.displ, obj.win, GCGraphicsExposures, &gcvals);
 
     // semaphores initialization
     if (unlinksem("/transem"))
@@ -93,8 +96,9 @@ const int transmitter(const Object obj, const int pids[]) {
     }
 
     image = XCreateImage(obj.displ, obj.winattr->visual, obj.winattr->depth, ZPixmap, 0, sh_image, obj.winattr->width, obj.winattr->height, 32, 0);
-    XPutImage(obj.displ, obj.win, obj.gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
+    XPutImage(obj.displ, obj.win, gc, image, 0, 0, 0, 0, obj.winattr->width, obj.winattr->height);
     XFree(image);
+    XFreeGC(obj.displ, gc);
 
     // closing the semaphore which used in main2.c because we can't close it there.
     if (closesem(transem))
@@ -106,7 +110,7 @@ const int transmitter(const Object obj, const int pids[]) {
     return EXIT_SUCCESS;
 }
 
-void transmitter_handler(int sig) {
+static const void transmitter_handler(int sig) {
 
     if (waitsem(transem))
         fprintf(stderr, "Warning: Main2 - mainsem - waitsem()\n");

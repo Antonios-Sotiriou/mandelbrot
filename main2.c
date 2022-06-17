@@ -55,6 +55,9 @@ int main(int argc, char *argv[]) {
     int shknot_id = crshmem(knot_key, sizeof(KNOT), SHM_RDONLY);
     if (shknot_id == -1)
         fprintf(stderr, "Warning: Main2 - shknot_id - crshmem()\n");
+
+    int proc_id = atoi(argv[0]);
+    printf("Process_id : %d\n", proc_id);
     
     while (!sig_val) {
 
@@ -68,39 +71,8 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Warning: Main2 - sh_knot - attshmem()\n");
 
             knot = *sh_knot;
-            knot.step_x = 0;
-
-            if (strcmp(argv[0], "process_1") == 0) {
-                knot.step_counter = 0;
-                knot.step_y = 0;
-            } else if (strcmp(argv[0], "process_2") == 0) {
-                knot.step_counter = ((EMVADON / PROC_NUM) * 4);
-                knot.step_y = knot.height / PROC_NUM;
-            } else if (strcmp(argv[0], "process_3") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 2);
-                knot.step_y = (knot.height / PROC_NUM) * 2;
-            } else if (strcmp(argv[0], "process_4") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 3);
-                knot.step_y = (knot.height / PROC_NUM) * 3;
-            } else if (strcmp(argv[0], "process_5") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 4);
-                knot.step_y = (knot.height / PROC_NUM) * 4;
-            } else if (strcmp(argv[0], "process_6") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 5);
-                knot.step_y = (knot.height / PROC_NUM) * 5;
-            } else if (strcmp(argv[0], "process_7") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 6);
-                knot.step_y = (knot.height / PROC_NUM) * 6;
-            } else if (strcmp(argv[0], "process_8") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) *7);
-                knot.step_y = (knot.height / PROC_NUM) * 7;
-            } else if (strcmp(argv[0], "process_9") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 8);
-                knot.step_y = (knot.height / PROC_NUM) * 8;
-            } else if (strcmp(argv[0], "process_10") == 0) {
-                knot.step_counter = (((EMVADON / PROC_NUM) * 4) * 9);
-                knot.step_y = (knot.height / PROC_NUM) * 9;
-            }
+            knot.step_counter = ((EMVADON / PROC_NUM) * 4) * proc_id;
+            knot.step_y = (knot.height / PROC_NUM) * proc_id;
 
             if(threader(knot) != 0) {
                 perror("Main2.c - threader()");

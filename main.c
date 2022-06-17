@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Warning: Main - crshmem()\n");
 
     int pids[PROC_NUM];
-    char *process_num[10] = { "process_1", "process_2", "process_3", "process_4", "process_5", "process_6", "process_7", "process_8", "process_9", "process_10" };
+    char *process_num[10] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
     for (int i = 0; i < PROC_NUM; i++) {
         pids[i] = fork();
         if (pids[i] == -1) {
@@ -48,26 +48,5 @@ int main(int argc, char *argv[]) {
     
     return EXIT_SUCCESS;
 }
-
-        // FIFO IMPLEMENTATION
-
-    // fifo headers for write only
-    // #include <sys/stat.h>
-    // error simillar headers
-    // #include <errno.h>
-    // if (mkfifo("./mdfifo", 0666) == -1) {
-    //     if (errno != EEXIST) {
-    //         perror("mkfifo()");
-    //         return 1;
-    //     }
-    // }
-
-    // fifo headers for read only
-    // #include <fcntl.h>
-    // int fd = open("./mdfifo", O_WRONLY);
-    // if (write(fd, &obj, sizeof(Object)) == -1) {
-    //     perror("write() fifo...");
-    // }
-    // close(fd);
 
     
