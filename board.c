@@ -139,7 +139,6 @@ static const void mapnotify(XEvent *event, const int pids[]) {
         pixmapdisplay();
     } else {
         printf("1st Mapnotify\n");
-        pixmapupdate();
         if (!MAPCOUNT)
             MAPCOUNT = 1;
     }
@@ -178,7 +177,7 @@ static const void configurenotify(XEvent *event, const int pids[]) {
             fprintf(stderr, "Warning: Board - configuenotify Event - shimage_id - destshmem()\n");
     }
 
-    if ((event->xconfigure.width == rootattr.width && event->xconfigure.height == (rootattr.height - event->xconfigure.y))) {
+    if ((event->xconfigure.width == rootattr.width && event->xconfigure.height == (rootattr.height - (event->xconfigure.y * 2)))) {
         ev.xresizerequest.width = event->xconfigure.width;
         ev.xresizerequest.height = event->xconfigure.height;
         FULLSCREEN = 1;
@@ -359,7 +358,7 @@ const int board(const int pids[]) {
 
         XNextEvent(displ, &event);
         
-        if (event.type == ConfigureNotify && !event.xconfigure.send_event)
+        if (event.type == ConfigureNotify && event.xconfigure.send_event)
             continue;
         else 
             if (handler[event.type])

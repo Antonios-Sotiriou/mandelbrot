@@ -41,6 +41,11 @@
     #include "header_files/procsync.h"
 #endif
 
+// some usefull Macros
+#ifndef EMVADON
+   #define EMVADON (obj.winattr->width * obj.winattr->height)
+#endif
+
 // Global Variables
 sem_t *transem;
 // this global variable is used only from this file and only from transmitter function.
@@ -74,7 +79,7 @@ const int transmitter(const Object obj, const int pids[]) {
     // image data pointer
     char *sh_image;
     key_t image_key = gorckey("./keys/image_key.txt", 8899);
-    int shimage_id = crshmem(image_key, obj.winattr->width * obj.winattr->height * 4, SHM_RDONLY);
+    int shimage_id = crshmem(image_key, EMVADON * 4, SHM_RDONLY);
     if (shimage_id == -1)
         fprintf(stderr, "Warning: Transmitter - shimage_id - crshmem()\n");
 
