@@ -1,59 +1,12 @@
-// general headers
-#ifndef _STDIO_H
-    #include <stdio.h>
-#endif
-#ifndef _STDLIB_H
-    #include <stdlib.h>
+// Project includes
+#ifndef _BOARD_H
+    #include "header_files/board.h"
 #endif
 
-// multiprocessing includes
-#ifndef _UNISTD_H
-    #include <unistd.h>
-#endif
-#ifndef _SYS_WAIT_H
-    #include <sys/wait.h>
-#endif
-
-// shared memory
-#ifndef _SYS_IPC_H
-    #include <sys/ipc.h>
-#endif
-#ifndef _SYS_SHM_H
-    #include <sys/shm.h>
-#endif
-#ifndef _SEMAPHORE_H
-    #include <semaphore.h>
-#endif
-
-// signals
-#ifndef _SIGNAL_H
-    #include <signal.h>
-#endif
-
-// HEADERS INCLUDED FOR TESTING
-#include <time.h>
-
-// Project specific headers
-#ifndef _SHMEM_H
-    #include "header_files/shmem.h"
-#endif
-#ifndef _OBJECTS_H
-    #include "header_files/objects.h"
-#endif
-#ifndef _GLOBAL_VARS_H
-    #include "header_files/global_vars.h"
-#endif
-#ifndef _TRANSMITTER_H
-    #include "header_files/transmitter.h"
-#endif
+// #define EMVADON (obj.winattr->width * obj.winattr->height)
+#define YPOLOIPON (event->xconfigure.width * event->xconfigure.height % PROC_NUM)
 
 enum { Win_Close, Win_Name, Atom_Type, Atom_Last};
-
-// some usefull Macros
-#ifndef EMVADON 
-    // #define EMVADON (obj.winattr->width * obj.winattr->height)
-    #define YPOLOIPON (obj.winattr->width * obj.winattr->height % PROC_NUM)
-#endif
 
 #define POINTERMASKS              ( ButtonPressMask )
 #define KEYBOARDMASKS             ( KeyPressMask )
@@ -68,8 +21,11 @@ Object obj;
 Pixmap pixmap;
 Atom wmatom[Atom_Last];
 KNOT *sh_knot;
-key_t knot_key, image_key;
-static int shknot_id, shimage_id;
+
+extern int shknot_id;
+extern int shimage_id;
+extern key_t image_key;
+
 static int MAPCOUNT = 0;
 static int FULLSCREEN = 0;
 static int OLDWIDTH = WIDTH;
@@ -135,10 +91,8 @@ static const void mapnotify(XEvent *event, const int pids[]) {
     printf("mapnotify event received\n");
 
     if (MAPCOUNT) {
-        printf("Other Mapnotify\n");
         pixmapdisplay();
     } else {
-        printf("1st Mapnotify\n");
         if (!MAPCOUNT)
             MAPCOUNT = 1;
     }
@@ -147,8 +101,8 @@ static const void resizerequest(XEvent *event, const int pids[]) {
 
     printf("resizerequest event received\n");
     if (FULLSCREEN) {
-        obj.winattr->width = winattr.width = event->xresizerequest.width;
-        obj.winattr->height = winattr.height = event->xresizerequest.height;
+        obj.winattr->width = winattr.width = event->xconfigure.width;
+        obj.winattr->height = winattr.height = event->xconfigure.height;
     } else {
         obj.winattr->width = winattr.width = OLDWIDTH;
         obj.winattr->height = winattr.height = OLDHEIGHT;
@@ -168,34 +122,31 @@ static const void resizerequest(XEvent *event, const int pids[]) {
 }
 static const void configurenotify(XEvent *event, const int pids[]) {
 
-    XEvent ev;
-    ev.type = ResizeRequest;
     printf("configurenotify event received\n");
-
     if (MAPCOUNT) {
         if (destshmem(shimage_id, IPC_RMID, 0))
             fprintf(stderr, "Warning: Board - configuenotify Event - shimage_id - destshmem()\n");
     }
 
     if ((event->xconfigure.width == rootattr.width && event->xconfigure.height == (rootattr.height - (event->xconfigure.y * 2)))) {
-        ev.xresizerequest.width = event->xconfigure.width;
-        ev.xresizerequest.height = event->xconfigure.height;
         FULLSCREEN = 1;
     } else if ((event->xconfigure.width == OLDWIDTH && event->xconfigure.height == OLDHEIGHT) && FULLSCREEN) {
-        ev.xresizerequest.width = event->xconfigure.width;
-        ev.xresizerequest.height = event->xconfigure.height;
         FULLSCREEN = 0;
     } else {
         OLDWIDTH = event->xconfigure.width;
         OLDHEIGHT = event->xconfigure.height;
     }
 
+    printf("Width: %d\n", event->xconfigure.width);
+    printf("Height: %d\n", event->xconfigure.height);
+
     // Create a shared image memory.We do it here because we need to recreate it if user resizes the window.
     shimage_id = crshmem(image_key, event->xconfigure.width * event->xconfigure.height * 4, 0666 | IPC_CREAT);
     if (shimage_id == -1)
         fprintf(stderr, "Warning: Board - configurenotify Event - crshmem()\n");
 
-    XSendEvent(displ, win, False, StructureNotifyMask, &ev);
+    event->type = ResizeRequest;
+    XSendEvent(displ, win, False, StructureNotifyMask, event);
 }
 static const void buttonpress(XEvent *event, const int pids[]) {
 
@@ -218,7 +169,6 @@ static const void buttonpress(XEvent *event, const int pids[]) {
     transmitter(obj, pids);
 
 }
-/* ##################################################################################################################### */
 static const void keypress(XEvent *event, const int pids[]) {
 
     /* Get user text input */
@@ -283,7 +233,6 @@ static const void pixmapupdate(void) {
     XCopyArea(displ, win, pixmap, pix, 0, 0, winattr.width, winattr.height, 0, 0);
     XFreeGC(displ, pix);
 }
-/* ##################################################################################################################### */
 static const void pixmapdisplay(void) {
 
     XGCValues gc_vals;
@@ -309,12 +258,6 @@ const int board(const int pids[]) {
 
     // shared memory
     // object to transfer between processes the integer variables for each process calculations.
-    knot_key = gorckey("./keys/knot_key.txt", 9988);
-
-    shknot_id = crshmem(knot_key, sizeof(KNOT), SHM_RDONLY);
-    if (shknot_id == -1)
-        fprintf(stderr, "Warning: Board - shknot_id - crshmem()\n");
-
     sh_knot = attshmem(shknot_id, NULL, SHM_RND);
     if (sh_knot == NULL)
         fprintf(stderr, "Warning: Board - sh_knot - attshmem()\n");

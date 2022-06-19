@@ -1,14 +1,5 @@
-// general headers
-#ifndef _STDLIB_H
-    #include <stdlib.h>
-#endif
-
-// Project specific headers
-#ifndef _PALETTE_H
-    #include "header_files/palette.h"
-#endif
-#ifndef _OBJECTS_H
-    #include "header_files/objects.h"
+#ifndef _PAINTER_H
+    #include "header_files/painter.h"
 #endif
 
 // Macro to help us with the computations

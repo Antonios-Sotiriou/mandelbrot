@@ -1,52 +1,10 @@
-// general headers
-#ifndef _STDIO_H
-    #include <stdio.h>
+#ifndef _THREADER_H
+    #include "header_files/threader.h"
 #endif
-#ifndef _STDLIB_H
-    #include <stdlib.h>
-#endif
-
-// multiprocessing includes
-#ifndef _UNISTD_H
-    #include <unistd.h>
-#endif
-
-// shared memory
-#ifndef _SYS_IPC_H
-    #include <sys/ipc.h>
-#endif
-#ifndef _SYS_SHM_H
-    #include <sys/shm.h>
-#endif
-#ifndef _SEMAPHORE_H
-    #include <semaphore.h>
-#endif
-
-// signals
-#ifndef _SIGNAL_H
-    #include <signal.h>
-#endif
-
-// Project specific headers
-#ifndef _SHMEM_H
-    #include "header_files/shmem.h"
-#endif
-#ifndef _OBJECTS_H
-    #include "header_files/objects.h"
-#endif
-#ifndef _GLOBAL_VARS_H
-    #include "header_files/global_vars.h"
-#endif
-// Macro to help us with the computations in painter function.Thats why we define it before the painter include and under the object include.
-#ifndef SCALES
-    #define SCALES 1
-    #define XSCALE (knot.x - (knot.width / knot.horiz)) / (knot.width / knot.zoom) + knot.init_x;
-    #define YSCALE (knot.y - (knot.height / knot.vert)) / (knot.height / knot.zoom) + knot.init_y;
-#endif
-
 #ifndef _PAINTER_H
     #include "header_files/painter.h"
 #endif
+
 // some usefull Macros
 #ifndef EMVADON
    #define EMVADON (knot.width * knot.height)
@@ -81,6 +39,10 @@ int threader(KNOT knot) {
         painter(knot, sh_image);
         counter += 4;
         x++;
+        // if (x == knot.width) {
+        //     printf("Knot.width = %d\n", y);
+        //     break;
+        // }
     }
 
     kill(getppid(), SIGRTMIN);

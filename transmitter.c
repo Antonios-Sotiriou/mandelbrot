@@ -1,55 +1,13 @@
-// general headers
-#ifndef _STDIO_H
-    #include <stdio.h>
-#endif
-#ifndef _STDLIB_H
-    #include <stdlib.h>
-#endif
-#ifndef _ERRNO_H
-    #include <errno.h>
-#endif
-
-// shared memory
-#ifndef _SYS_SHM_H
-    #include <sys/shm.h>
-#endif
-
-/* semaphore specific includes */
-#ifndef _FCNTL_H
-    #include <fcntl.h>
-#endif
-
-// signals
-#ifndef _SIGNAL_H
-    #include <signal.h>
-#endif
-
-// Project specific headers
-#ifndef _SHMEM_H
-    #include "header_files/shmem.h"
-#endif
-#ifndef _OBJECTS_H
-    #include "header_files/objects.h"
-#endif
-#ifndef _GLOBAL_VARS_H
-    #include "header_files/global_vars.h"
-#endif
-#ifndef _THREADER_H
-    #include "header_files/threader.h"
-#endif
-#ifndef _PROCSYNC_H
-    #include "header_files/procsync.h"
-#endif
-
-// some usefull Macros
-#ifndef EMVADON
-   #define EMVADON (obj.winattr->width * obj.winattr->height)
+#ifndef _TRANSMITTER_H
+    #include "header_files/transmitter.h"
 #endif
 
 // Global Variables
 sem_t *transem;
+extern int shimage_id;
+
 // this global variable is used only from this file and only from transmitter function.
-int WAIT_CON = 0;
+static int WAIT_CON = 0;
 
 static const void transmitter_handler(int sig);
 
@@ -78,11 +36,6 @@ const int transmitter(const Object obj, const int pids[]) {
 
     // image data pointer
     char *sh_image;
-    key_t image_key = gorckey("./keys/image_key.txt", 8899);
-    int shimage_id = crshmem(image_key, EMVADON * 4, SHM_RDONLY);
-    if (shimage_id == -1)
-        fprintf(stderr, "Warning: Transmitter - shimage_id - crshmem()\n");
-
     sh_image = attshmem(shimage_id, NULL, SHM_RND);
     if (sh_image == NULL)
         fprintf(stderr, "Warning: Transmitter - sh_image - attshmem()\n");

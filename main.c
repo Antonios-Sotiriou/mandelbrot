@@ -14,8 +14,11 @@
 #include "header_files/locale.h"
 #include "header_files/shmem.h"
 #include "header_files/objects.h"
-#include "header_files/global_vars.h"
+#include "header_files/global_constants.h"
 #include "header_files/board.h"
+
+extern int shknot_id;
+extern key_t knot_key;
 
 int main(int argc, char *argv[]) {
 
@@ -23,11 +26,12 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Warning: Main -locale()\n");
 
     // object to transfer between processes which contains the integer variables for each process calculations.
-    key_t knot_key = gorckey("./keys/knot_key.txt", 9988);
+    knot_key = gorckey("./keys/knot_key.txt", 9988);
     if (knot_key == -1)
         fprintf(stderr, "Warning: Main - knot_key - gorckey()\n");
 
-    if (crshmem(knot_key, sizeof(KNOT), 0666 | IPC_CREAT) == -1)
+    shknot_id = crshmem(knot_key, sizeof(KNOT), 0666 | IPC_CREAT);
+    if (shknot_id == -1)
         fprintf(stderr, "Warning: Main - crshmem()\n");
 
     int pids[PROC_NUM];

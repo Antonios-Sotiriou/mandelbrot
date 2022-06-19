@@ -19,7 +19,7 @@
 
 #include "header_files/shmem.h"
 #include "header_files/objects.h"
-#include "header_files/global_vars.h"
+#include "header_files/global_constants.h"
 #include "header_files/threader.h"
 #include "header_files/procsync.h"
 
