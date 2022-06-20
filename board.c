@@ -33,7 +33,7 @@ static int OLDHEIGHT = HEIGHT;
 static int RUNNING = 1;
 
 // initialize the knot object to be transfered because we can't transfer pointers to pointers through shared memory.
-static void init_knot(KNOT *knot, const Object obj);
+static void init_knot(KNOT *knot);
 static const void clientmessage(XEvent *event, const int pids[]);
 static const void reparentnotify(XEvent *event, const int pids[]);
 static const void mapnotify(XEvent *event, const int pids[]);
@@ -110,10 +110,10 @@ static const void resizerequest(XEvent *event, const int pids[]) {
 
     if (!XPending(displ)) {
 
-        init_knot(sh_knot, obj);
+        init_knot(sh_knot);
 
         if (transmitter(obj, pids))
-            perror("resizerequest() - transmitter()");
+            fprintf(stderr, "Warning: Board - resizerequest Event - transmitter()\n");
 
         pixmapupdate();
     } else {
@@ -136,9 +136,6 @@ static const void configurenotify(XEvent *event, const int pids[]) {
         OLDWIDTH = event->xconfigure.width;
         OLDHEIGHT = event->xconfigure.height;
     }
-
-    printf("Width: %d\n", event->xconfigure.width);
-    printf("Height: %d\n", event->xconfigure.height);
 
     // Create a shared image memory.We do it here because we need to recreate it if user resizes the window.
     shimage_id = crshmem(image_key, event->xconfigure.width * event->xconfigure.height * 4, 0666 | IPC_CREAT);
@@ -165,7 +162,7 @@ static const void buttonpress(XEvent *event, const int pids[]) {
         obj.zoom /= 0.50;
     }
 
-    init_knot(sh_knot, obj);
+    init_knot(sh_knot);
     transmitter(obj, pids);
 
 }
@@ -220,7 +217,7 @@ static const void keypress(XEvent *event, const int pids[]) {
         obj.zoom *= 0.50;
     }
 
-    init_knot(sh_knot, obj);
+    init_knot(sh_knot);
     transmitter(obj, pids);
 }
 static const void pixmapupdate(void) {
@@ -270,8 +267,8 @@ const int board(const int pids[]) {
 
     displ = XOpenDisplay(NULL);
     if (displ == NULL) {
-        perror("Board - XOpenDisplay()");
-        return EXIT_FAILURE;;
+        fprintf(stderr, "Warning: Board - XOpenDisplay()\n");
+        return EXIT_FAILURE;
     } else {
         obj.displ = displ;
     }
@@ -310,7 +307,7 @@ const int board(const int pids[]) {
     return EXIT_SUCCESS;
 }
 
-static void init_knot(KNOT *knot, const Object obj) {
+static void init_knot(KNOT *knot) {
 
     knot->width = obj.winattr->width;
     knot->height = obj.winattr->height;

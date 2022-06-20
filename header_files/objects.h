@@ -22,7 +22,7 @@ typedef struct {
 } Object;
 
 typedef struct {
-    int proc_num;
+    int proc_id;
     unsigned int width;
     unsigned int height;
     int max_iter;

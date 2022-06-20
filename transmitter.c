@@ -20,7 +20,7 @@ const int transmitter(const Object obj, const int pids[]) {
 
     // semaphores initialization
     if (unlinksem("/transem"))
-        fprintf(stderr, "Warning: Transmitter - /transem - unlinkif()\n");
+        fprintf(stderr, "Warning: Transmitter - /transem - unlinksem()\n");
 
     transem = opensem("/transem", O_CREAT, 0666, PROC_NUM);
     if (transem == SEM_FAILED)
@@ -30,7 +30,7 @@ const int transmitter(const Object obj, const int pids[]) {
     struct sigaction sig = { 0 };
     sig.sa_handler = &transmitter_handler;;
     if (sigaction(SIGRTMIN, &sig, NULL) == -1) {
-        perror("Transmitter - sigaction()");
+        fprintf(stderr, "Warning: transmitter - sigaction()\n");
         return EXIT_FAILURE;
     }
 

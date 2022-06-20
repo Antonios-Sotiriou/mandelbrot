@@ -9,11 +9,13 @@
 #ifndef EMVADON
    #define EMVADON (knot.width * knot.height)
 #endif
+    #include <string.h>
 
 int threader(KNOT knot) {
 
     char *sh_image;
     key_t image_key = gorckey("./keys/image_key.txt", 8899);
+    
     int shimage_id = crshmem(image_key, EMVADON * 4, SHM_RDONLY);
     if (shimage_id == -1)
         fprintf(stderr, "Warning: Threader - shimage_id - crshmem()\n");
@@ -39,10 +41,6 @@ int threader(KNOT knot) {
         painter(knot, sh_image);
         counter += 4;
         x++;
-        // if (x == knot.width) {
-        //     printf("Knot.width = %d\n", y);
-        //     break;
-        // }
     }
 
     kill(getppid(), SIGRTMIN);

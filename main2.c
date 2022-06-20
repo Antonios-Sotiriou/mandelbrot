@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -46,7 +45,7 @@ int main(int argc, char *argv[]) {
     sig.sa_handler = &signal_handler;
     int sig_val = sigaction(SIGUSR1, &sig, NULL);
     if (sig_val == -1) {
-        perror("Main2 - sigaction()");
+        fprintf(stderr, "Warning: Main2 - sigaction()\n");
         return EXIT_FAILURE;
     }
     // Grab the shared memory to retrieve the knot was putted there by main.c and modified by board.c.
@@ -57,7 +56,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Warning: Main2 - shknot_id - crshmem()\n");
 
     int proc_id = atoi(argv[0]);
-    printf("Process_id : %d\n", proc_id);
     
     while (!sig_val) {
 
@@ -71,11 +69,12 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Warning: Main2 - sh_knot - attshmem()\n");
 
             knot = *sh_knot;
+            knot.proc_id = proc_id;
             knot.step_counter = ((EMVADON / PROC_NUM) * 4) * proc_id;
             knot.step_y = (knot.height / PROC_NUM) * proc_id;
 
             if(threader(knot) != 0) {
-                perror("Main2.c - threader()");
+                fprintf(stderr, "Warning: Main2 - threader()\n");
                 return EXIT_FAILURE;
             }
             LOOP_CON = 0;
