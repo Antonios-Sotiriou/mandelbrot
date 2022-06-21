@@ -22,7 +22,7 @@
 #include "header_files/locale.h"
 
 #define EXIT_FAILURE_NEGATIVE     -1                                              // Some functions need to return a negative value;
-#define THREADS_NUM               7                                              // The number of Threads.
+#define THREADS_NUM               7                                               // The number of Threads.
 #define WIDTH                     800                                             // App starting window width.
 #define HEIGHT                    800                                             // App starting window height.
 #define ITERATIONS                1000                                            // Number of mandelbrot iterations.
@@ -33,7 +33,7 @@
 #define KEYBOARDMASKS             ( KeyPressMask )
 #define EXPOSEMASKS               ( StructureNotifyMask )
 
-enum { App_Close, App_Name, App_Maximized, App_Iconified, App_NormalState, Atom_Type, Atom_Last};
+enum { App_Close, App_Name, Atom_Type, Atom_Last};
 
 typedef struct {
     
@@ -54,28 +54,23 @@ typedef struct {
 
 } Mandelbrot;
 
+Bool predicate(Display *displ, XEvent *event, XPointer args);
 static void mandelbrot_init(void);
-void painter(const Mandelbrot md, char *image_data);
+static void painter(const Mandelbrot md, char *image_data);
 void receiver(Mandelbrot md);
 void *oscillator(void *args);
 const int transmitter(void);
-Bool predicate(Display *displ, XEvent *event, XPointer args);
 const void clientmessage(XEvent *event);
 void reparentnotify(XEvent *event);
 const void mapnotify(XEvent *event);
-// void visibilitychange(XEvent *event);
 void resizerequest(XEvent *event);
-// void configurerequest(XEvent *event);
 void configurenotify(XEvent *event);
-void unmapnotify(XEvent *event);
-void expose(XEvent *event);
-void noexpose(XEvent *event);
 void buttonpress(XEvent *event);
 void keypress(XEvent *event);
 const void pixmapupdate(void);
 const void pixmapdisplay(void);
 const void atomsinit(void);
-int board();
+const int board();
 
 // Global Variables
 Display *displ;
@@ -85,34 +80,29 @@ Window app;
 Pixmap pixmap;
 static int screen;
 static int MAPCOUNT = 0;
-static int ICONIFIED = 0;
 static int FULLSCREEN = 0;
 static int OLDWIDTH = WIDTH;
 static int OLDHEIGHT = HEIGHT;
-static int REPAINT = 0;
 static int RUNNING = 1; 
 static void (*handler[LASTEvent]) (XEvent *event) = {
-	[ClientMessage] = clientmessage,
-	// [DestroyNotify] = destroynotify,
-	// [EnterNotify] = enternotify,
+    [ClientMessage] = clientmessage,
     [ReparentNotify] = reparentnotify,
-	[MapNotify] = mapnotify,
-    // [VisibilityNotify] = visibilitychange,
-	[Expose] = expose,
-	[NoExpose] = noexpose,
-	[ResizeRequest] = resizerequest,
-	// [ConfigureRequest] = configurerequest,
-	[ConfigureNotify] = configurenotify,
-	[UnmapNotify] = unmapnotify,
-	// [FocusIn] = focusin,
-	// [MappingNotify] = mappingnotify,
-	[ButtonPress] = buttonpress,
-	[KeyPress] = keypress,
-	// [MotionNotify] = motionnotify,
-	// [PropertyNotify] = propertynotify
+    [MapNotify] = mapnotify,
+    [ResizeRequest] = resizerequest,
+    [ConfigureNotify] = configurenotify,
+    [ButtonPress] = buttonpress,
+    [KeyPress] = keypress,
 };
 static Atom wmatom[Atom_Last];
 Mandelbrot md_init;
+
+/* ##################################################################################################################### */
+Bool predicate(Display *displ, XEvent *event, XPointer args) {
+
+    if (event->type == ConfigureNotify)
+        return True;
+    return False;
+}
 /* ##################################################################################################################### */
 static void mandelbrot_init(void) {
     md_init.width = stat_app.width;
@@ -131,7 +121,7 @@ static void mandelbrot_init(void) {
     md_init.step_y = 0;
 }
 /* ##################################################################################################################### */
-void painter(const Mandelbrot md, char *image_data) {
+static void painter(const Mandelbrot md, char *image_data) {
 
     double a = (md.x - (md.width / md.horiz)) / (md.width / md.zoom) + md.init_x;
     double b = (md.y - (md.height / md.vert)) / (md.height / md.zoom) + md.init_y;
@@ -244,6 +234,7 @@ const void clientmessage(XEvent *event) {
         XFreePixmap(displ, pixmap);
         XDestroyWindow(displ, app);
         XCloseDisplay(displ);
+
         RUNNING = 0;
     }
 }
@@ -257,7 +248,7 @@ void reparentnotify(XEvent *event) {
         mandelbrot_init();
 
         if (transmitter())
-            perror("mapnotify() - transmitter()");
+            fprintf(stderr, "mapnotify() - transmitter()");
     }
 }
 /* ##################################################################################################################### */
@@ -266,45 +257,17 @@ const void mapnotify(XEvent *event) {
     printf("mapnotify event received\n");
 
     if (MAPCOUNT) {
-        printf("Other Mapnotify\n");
         pixmapdisplay();
     } else {
-        printf("1st Mapnotify\n");
-        pixmapupdate();
         MAPCOUNT = 1;
-        XSync(displ, True);
     }
-}
-/* ##################################################################################################################### */
-void expose(XEvent *event) {
-
-    printf("expose event received.Count: %d\n", event->xexpose.count);
-    if (!MAPCOUNT) {
-        if (REPAINT) {
-            md_init.width = OLDWIDTH;
-            md_init.height = OLDHEIGHT;
-
-            if (transmitter())
-                perror("resizerequest() - transmitter()");
-
-            pixmapupdate();
-
-            XSync(displ, True);
-        }
-        REPAINT = 0;
-    }
-}
-/* ##################################################################################################################### */
-void noexpose(XEvent *event) {
-
-    printf("noexpose event received\n");
 }
 /* ##################################################################################################################### */
 void resizerequest(XEvent *event) {
 
     if (FULLSCREEN) {
-        md_init.width = stat_app.width = event->xresizerequest.width;
-        md_init.height = stat_app.height = event->xresizerequest.height;
+        md_init.width = stat_app.width = event->xconfigure.width;
+        md_init.height = stat_app.height = event->xconfigure.height;
     } else {
         md_init.width = stat_app.width = OLDWIDTH;
         md_init.height = stat_app.height = OLDHEIGHT;
@@ -312,7 +275,7 @@ void resizerequest(XEvent *event) {
 
     if (!XPending(displ)) {
         if (transmitter())
-            perror("resizerequest() - transmitter()");
+            fprintf(stderr, "resizerequest() - transmitter()");
 
         pixmapupdate();
     } else {
@@ -320,36 +283,18 @@ void resizerequest(XEvent *event) {
     }
 }
 /* ##################################################################################################################### */
-Bool predicate(Display *displ, XEvent *event, XPointer args) {
-
-    if (event->type == ConfigureNotify)
-        return True;
-    return False;
-}
 void configurenotify(XEvent *event) {
 
-    XEvent ev;
-    ev.type = ResizeRequest;
-
-    if ((event->xconfigure.width == stat_root.width && event->xconfigure.height == (stat_root.height - event->xconfigure.y))) {
-        ev.xresizerequest.width = event->xconfigure.width;
-        ev.xresizerequest.height = event->xconfigure.height;
+    if ((event->xconfigure.width == stat_root.width && event->xconfigure.height == (stat_root.height - (event->xconfigure.y * 2)))) {
         FULLSCREEN = 1;
     } else if ((event->xconfigure.width == OLDWIDTH && event->xconfigure.height == OLDHEIGHT) && FULLSCREEN) {
-        ev.xresizerequest.width = event->xconfigure.width;
-        ev.xresizerequest.height = event->xconfigure.height;
         FULLSCREEN = 0;
     } else {
         OLDWIDTH = event->xconfigure.width;
         OLDHEIGHT = event->xconfigure.height;
     }
-    XSendEvent(displ, app, False, StructureNotifyMask, &ev);
-}
-/* ##################################################################################################################### */
-void unmapnotify(XEvent *event) {
-
-    printf("unmapnotify event received\n");
-    ICONIFIED = 1;
+    event->type = ResizeRequest;
+    XSendEvent(displ, app, False, StructureNotifyMask, event);
 }
 /* ##################################################################################################################### */
 void buttonpress(XEvent *event) {
@@ -370,7 +315,7 @@ void buttonpress(XEvent *event) {
     }
 
     if (transmitter())
-        perror("buttonpress() - transmitter()");
+        fprintf(stderr, "buttonpress() - transmitter()");
 
     pixmapupdate();
 }
@@ -385,15 +330,15 @@ void keypress(XEvent *event) {
     //XIMStyle xim_requested_style;
     xim = XOpenIM(displ, NULL, NULL, NULL);
     if (xim == NULL) {
-        perror("keypress() - XOpenIM()");
+        fprintf(stderr, "keypress() - XOpenIM()");
     }
     failed_arg = XGetIMValues(xim, XNQueryInputStyle, &styles, NULL);
     if (failed_arg != NULL) {
-        perror("keypress() - XGetIMValues()");
+        fprintf(stderr, "keypress() - XGetIMValues()");
     }
     xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, app, NULL);
     if (xic == NULL) {
-        perror("keypress() - XreateIC()");
+        fprintf(stderr, "keypress() - XreateIC()");
     }
     XSetICFocus(xic);
 
@@ -427,7 +372,7 @@ void keypress(XEvent *event) {
     }
 
     if (transmitter())
-        perror("keypress() - transmitter()");
+        fprintf(stderr, "keypress() - transmitter()");
 
     pixmapupdate();
 }
@@ -463,19 +408,6 @@ const void atomsinit(void) {
     wmatom[App_Name] = XInternAtom(displ, "WM_NAME", False);
     wmatom[Atom_Type] =  XInternAtom(displ, "STRING", False);
     XChangeProperty(displ, app, wmatom[App_Name], wmatom[Atom_Type], 8, PropModeReplace, (unsigned char*)"Mandelbrot Set", 14);
-
-    wmatom[App_Maximized] = XInternAtom(displ, "_NET_WM_STATE_MAXIMIZED", True);
-    if (wmatom[App_Maximized] == None)
-        perror("No atom found");
-
-    wmatom[App_Iconified] = XInternAtom(displ, "_NET_WM_STATE_ICONIFIED", True);
-    if (wmatom[App_Iconified] == None)
-        perror("No atom found");
-
-    wmatom[App_NormalState] = XInternAtom(displ, "_NET_WM_STATE_NORMAL", True);
-    if (wmatom[App_NormalState] == None)
-        perror("No atom found");
-
 }
 /* ##################################################################################################################### */
 // General initialization and event handling.
@@ -486,8 +418,8 @@ const int board() {
     
     displ = XOpenDisplay(NULL);
     if (displ == NULL) {
-        perror("Board - XOpenDisplay()");
-        return EXIT_FAILURE;;
+        fprintf(stderr, "Board - XOpenDisplay()");
+        return EXIT_FAILURE;
     }
     screen = XDefaultScreen(displ);
     XGetWindowAttributes(displ, XDefaultRootWindow(displ), &stat_root);
@@ -504,7 +436,7 @@ const int board() {
 
         XNextEvent(displ, &event);
 
-        if (event.type == ConfigureNotify && !event.xconfigure.send_event)
+        if (event.type == ConfigureNotify && event.xconfigure.send_event)
             continue;
         else 
             if (handler[event.type])
