@@ -22,7 +22,7 @@
 #include "header_files/locale.h"
 
 #define EXIT_FAILURE_NEGATIVE     -1                                              // Some functions need to return a negative value;
-#define THREADS_NUM               7                                               // The number of Threads.
+#define THREADS_NUM               20                                              // The number of Threads.
 #define WIDTH                     800                                             // App starting window width.
 #define HEIGHT                    800                                             // App starting window height.
 #define ITERATIONS                1000                                            // Number of mandelbrot iterations.
@@ -54,23 +54,22 @@ typedef struct {
 
 } Mandelbrot;
 
-Bool predicate(Display *displ, XEvent *event, XPointer args);
 static void mandelbrot_init(void);
 static void painter(const Mandelbrot md, char *image_data);
-void receiver(Mandelbrot md);
-void *oscillator(void *args);
-const int transmitter(void);
-const void clientmessage(XEvent *event);
-void reparentnotify(XEvent *event);
-const void mapnotify(XEvent *event);
-void resizerequest(XEvent *event);
-void configurenotify(XEvent *event);
-void buttonpress(XEvent *event);
-void keypress(XEvent *event);
-const void pixmapupdate(void);
-const void pixmapdisplay(void);
-const void atomsinit(void);
-const int board();
+static void receiver(Mandelbrot md);
+static void *oscillator(void *args);
+static const int transmitter(void);
+static const void clientmessage(XEvent *event);
+static const void reparentnotify(XEvent *event);
+static const void mapnotify(XEvent *event);
+static const void resizerequest(XEvent *event);
+static void configurenotify(XEvent *event);
+static const void buttonpress(XEvent *event);
+static const void keypress(XEvent *event);
+static const void pixmapupdate(void);
+static const void pixmapdisplay(void);
+static const void atomsinit(void);
+static const int board(void);
 
 // Global Variables
 Display *displ;
@@ -96,13 +95,6 @@ static void (*handler[LASTEvent]) (XEvent *event) = {
 static Atom wmatom[Atom_Last];
 Mandelbrot md_init;
 
-/* ##################################################################################################################### */
-Bool predicate(Display *displ, XEvent *event, XPointer args) {
-
-    if (event->type == ConfigureNotify)
-        return True;
-    return False;
-}
 /* ##################################################################################################################### */
 static void mandelbrot_init(void) {
     md_init.width = stat_app.width;
@@ -155,7 +147,7 @@ static void painter(const Mandelbrot md, char *image_data) {
     }
 }
 /* ##################################################################################################################### */
-void receiver(Mandelbrot md) {
+static void receiver(Mandelbrot md) {
 
     XImage *image;
     char image_data[((md.width * md.height) / THREADS_NUM) * 4];
@@ -190,7 +182,7 @@ void receiver(Mandelbrot md) {
     XFree(image);
 }
 /* ##################################################################################################################### */
-void *oscillator(void *args) {
+static void *oscillator(void *args) {
 
     Mandelbrot md = md_init;
 
@@ -204,7 +196,7 @@ void *oscillator(void *args) {
     return (void*) args;
 }
 /* ##################################################################################################################### */
-const int transmitter(void) {
+static const int transmitter(void) {
 
     pthread_t threads[THREADS_NUM];
     
@@ -225,12 +217,10 @@ const int transmitter(void) {
     return EXIT_SUCCESS;
 }
 /* ##################################################################################################################### */
-const void clientmessage(XEvent *event) {
-
-    printf("clientmessage event received\n");
+static const void clientmessage(XEvent *event) {
     
     if (event->xclient.data.l[0] == wmatom[App_Close]) {
-        printf("WM_DELETE_WINDOW\n");
+
         XFreePixmap(displ, pixmap);
         XDestroyWindow(displ, app);
         XCloseDisplay(displ);
@@ -239,9 +229,8 @@ const void clientmessage(XEvent *event) {
     }
 }
 /* ##################################################################################################################### */
-void reparentnotify(XEvent *event) {
+static const void reparentnotify(XEvent *event) {
 
-    printf("reparentnotify event received\n");
     if (event->xreparent.parent != app) {
 
         XGetWindowAttributes(displ, app, &stat_app);
@@ -252,9 +241,7 @@ void reparentnotify(XEvent *event) {
     }
 }
 /* ##################################################################################################################### */
-const void mapnotify(XEvent *event) {
-
-    printf("mapnotify event received\n");
+static const void mapnotify(XEvent *event) {
 
     if (MAPCOUNT) {
         pixmapdisplay();
@@ -263,7 +250,7 @@ const void mapnotify(XEvent *event) {
     }
 }
 /* ##################################################################################################################### */
-void resizerequest(XEvent *event) {
+static const void resizerequest(XEvent *event) {
 
     if (FULLSCREEN) {
         md_init.width = stat_app.width = event->xconfigure.width;
@@ -283,7 +270,7 @@ void resizerequest(XEvent *event) {
     }
 }
 /* ##################################################################################################################### */
-void configurenotify(XEvent *event) {
+static void configurenotify(XEvent *event) {
 
     if ((event->xconfigure.width == stat_root.width && event->xconfigure.height == (stat_root.height - (event->xconfigure.y * 2)))) {
         FULLSCREEN = 1;
@@ -297,9 +284,8 @@ void configurenotify(XEvent *event) {
     XSendEvent(displ, app, False, StructureNotifyMask, event);
 }
 /* ##################################################################################################################### */
-void buttonpress(XEvent *event) {
+static const void buttonpress(XEvent *event) {
 
-    printf("buttonpress event received\n");
     if (md_init.init_x == 0.00 && md_init.init_y == 0.00) {
         md_init.init_x = (((double)event->xbutton.x - (md_init.width / md_init.horiz)) / (md_init.width / md_init.zoom));
         md_init.init_y = (((double)event->xbutton.y - (md_init.height / md_init.vert)) / (md_init.height / md_init.zoom));
@@ -320,22 +306,25 @@ void buttonpress(XEvent *event) {
     pixmapupdate();
 }
 /* ##################################################################################################################### */
-void keypress(XEvent *event) {
+static const void keypress(XEvent *event) {
 
     /* Get user text input */
     XIM xim;
     XIC xic;
     char *failed_arg;
     XIMStyles *styles;
-    //XIMStyle xim_requested_style;
+
     xim = XOpenIM(displ, NULL, NULL, NULL);
     if (xim == NULL) {
         fprintf(stderr, "keypress() - XOpenIM()");
     }
+    
     failed_arg = XGetIMValues(xim, XNQueryInputStyle, &styles, NULL);
     if (failed_arg != NULL) {
         fprintf(stderr, "keypress() - XGetIMValues()");
     }
+    XFree(failed_arg);
+
     xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, app, NULL);
     if (xic == NULL) {
         fprintf(stderr, "keypress() - XreateIC()");
@@ -369,15 +358,20 @@ void keypress(XEvent *event) {
         md_init.vert -= 0.01;
     } else if (keysym == 65293) {
         md_init.zoom *= 0.50;
+    } else {
+        return;
     }
 
     if (transmitter())
         fprintf(stderr, "keypress() - transmitter()");
 
     pixmapupdate();
+
+    XDestroyIC(xic);
+    XCloseIM(xim);
 }
 /* ##################################################################################################################### */
-const void pixmapupdate(void) {
+static const void pixmapupdate(void) {
 
     XGCValues gc_vals;
     gc_vals.graphics_exposures = False;
@@ -388,7 +382,7 @@ const void pixmapupdate(void) {
     XFreeGC(displ, pix);
 }
 /* ##################################################################################################################### */
-const void pixmapdisplay(void) {
+static const void pixmapdisplay(void) {
 
     XGCValues gc_vals;
     gc_vals.graphics_exposures = False;
@@ -398,7 +392,7 @@ const void pixmapdisplay(void) {
     XFreeGC(displ, pix);
 }
 /* ##################################################################################################################### */
-const void atomsinit(void) {
+static const void atomsinit(void) {
 
     /* Delete window initializer area */
     wmatom[App_Close] = XInternAtom(displ, "WM_DELETE_WINDOW", False);
@@ -411,7 +405,7 @@ const void atomsinit(void) {
 }
 /* ##################################################################################################################### */
 // General initialization and event handling.
-const int board() {
+static const int board(void) {
 
     XInitThreads();
     XEvent event;
