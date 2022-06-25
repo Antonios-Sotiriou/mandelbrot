@@ -1,7 +1,7 @@
 # Compile all c files to crwindow executable!
 
 CC = gcc
-CFLAGS = -Wall -Werror -g
+CFLAGS = -Wall -Werror -O2 #-Os #-Og #-O0 #-g
 OBJ = plot
 RM = rm
 LINKS = -lX11 -pthread
@@ -16,8 +16,9 @@ all:
 	$(CC) $(CFLAGS) board.c locale.c -o $(OBJ) $(LINKS);
 
 exec:
-	./plot
+	./plot;
 
 clean:
+	sudo rm -r ./*;
 	sudo apt autoremove -y;
 

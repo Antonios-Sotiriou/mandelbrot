@@ -1,21 +1,7 @@
 // general headers
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-
-// multiprocessing includes
-#include <unistd.h>
-// #include <sys/wait.h>
 #include <pthread.h>
-
-// semaphores and synchronization
-#include <semaphore.h>
-
-// signals
-#include <signal.h>
-
-// Usefull headers for testing
-#include <time.h>
 
 // Project specific headers
 #include <X11/Xlib.h>
@@ -331,23 +317,15 @@ static const void keypress(XEvent *event) {
     }
     XSetICFocus(xic);
 
-    int count = 0;
     KeySym keysym = 0;
     char buffer[32];
     Status status = 0;
-    count = Xutf8LookupString(xic, &event->xkey, buffer, 32, &keysym, &status);
-    printf("Button pressed.\n");
-    printf("Count %d.\n", count);
+    Xutf8LookupString(xic, &event->xkey, buffer, 32, &keysym, &status);
+
     if (status == XBufferOverflow) {
-        printf("Buffer Overflow...\n");
+        fprintf(stderr, "Buffer Overflow...\n");
     }
-    if (count) {
-        printf("The Button that was pressed is %s.\n", buffer);
-    }
-    if (status == XLookupKeySym || status == XLookupBoth) {
-        printf("Status: %d\n", status);
-    }
-    printf("Pressed key: %lu.\n", keysym);
+
     if (keysym == 65361) {
         md_init.horiz += 0.01;
     } else if (keysym == 65363) {
@@ -404,7 +382,6 @@ static const void atomsinit(void) {
     XChangeProperty(displ, app, wmatom[App_Name], wmatom[Atom_Type], 8, PropModeReplace, (unsigned char*)"Mandelbrot Set", 14);
 }
 /* ##################################################################################################################### */
-// General initialization and event handling.
 static const int board(void) {
 
     XInitThreads();
