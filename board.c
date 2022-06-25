@@ -7,7 +7,6 @@
 #include <X11/Xlib.h>
 #include "header_files/locale.h"
 
-#define EXIT_FAILURE_NEGATIVE     -1                                              // Some functions need to return a negative value;
 #define THREADS_NUM               20                                              // The number of Threads.
 #define WIDTH                     800                                             // App starting window width.
 #define HEIGHT                    800                                             // App starting window height.
