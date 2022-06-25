@@ -9,11 +9,12 @@ Same goes for Enter button upon which the set is zoomed in.<br>
 The keyboard arrows are used for left, right, up, or down moving.<br>
 
 In the board.c file after the include headers, you can choose the number of threads<br>
-or the starting size of the application window.For better output because of mandelbrot's nature<br>
-it is advised to use same values for width and height.
+or the starting size of the application window.For better output, because of mandelbrot's nature,<br>
+it is advised to use same values for width and height.Don't forget that you need to recompile<br>
+if you change those values.
 
-If you are interested in obtaining this software, clone it and from inside the projects main folder,
-run first the following command to download and install the xlib library if you do not already have it installed.<br>
+If you are interested in obtaining this software, clone it and from inside the project's main folder,
+run first the following command to download and install the xlib library, if you do not already have it installed.<br>
 ```
 make install
 ```
@@ -21,7 +22,7 @@ After library is ready, compile the project with the following command...<br>
 ```
 make all
 ```
-If compiling will be success run the executable
+If compiling was success run the executable
 ```
 ./plot
 ```
