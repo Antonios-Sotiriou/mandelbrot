@@ -1,4 +1,4 @@
-# Mandelbrot set with xlib on c programming. Multithreading Version.
+# Mandelbrot set with xlib and C programming language. Multithreading Version.
 ### The compiler used to run this software is "gcc version 11.3.0 (Debian 11.3.0-3)"
 Only Xlib and standard C Libraries have been used to develop this software.<br>
 
